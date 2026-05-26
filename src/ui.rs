@@ -12,6 +12,7 @@ use crate::models::*;
 pub enum FocusArea {
     ThoughtList,
     IdeaPanel,
+    TemplateBar,
     Input,
 }
 
@@ -33,6 +34,8 @@ pub struct UiState {
     pub scroll_offset: usize,
     pub sessions: Vec<Session>,
     pub current_session: Option<Session>,
+    pub templates: Vec<String>,
+    pub template_focus_index: usize,
 }
 
 impl UiState {
@@ -47,6 +50,8 @@ impl UiState {
             scroll_offset: 0,
             sessions: vec![],
             current_session: None,
+            templates: vec![],
+            template_focus_index: 0,
         }
     }
 }
@@ -54,32 +59,32 @@ impl UiState {
 pub fn render_ui(frame: &mut Frame, state: &UiState) {
     let area = frame.area();
 
-    // Layout: top status bar, middle (left thoughts, right idea), bottom input, bottom help
+    let has_templates = !state.templates.is_empty();
+    let template_rows = if has_templates { 1 } else { 0 };
+
+    // Layout: status bar, middle (thoughts|idea), template bar, input, help bar
     let main_layout = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(1),
+        Constraint::Length(template_rows * 3),
         Constraint::Length(3),
         Constraint::Length(1),
     ]);
-    let [status_bar, middle, input_area, help_bar] = main_layout.areas(area);
+    let [status_bar, middle, template_area, input_area, help_bar] = main_layout.areas(area);
 
     // Middle: split into left (thoughts) and right (idea)
     let middle_layout = Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]);
     let [left_panel, right_panel] = middle_layout.areas(middle);
 
-    // Render status bar
     render_status_bar(frame, status_bar, state);
-
-    // Render left panel (thoughts)
     render_thought_panel(frame, left_panel, state);
-
-    // Render right panel (ideas)
     render_idea_panel(frame, right_panel, state);
 
-    // Render input area
-    render_input(frame, input_area, state);
+    if has_templates {
+        render_template_bar(frame, template_area, state);
+    }
 
-    // Render help bar
+    render_input(frame, input_area, state);
     render_help_bar(frame, help_bar, state);
 }
 
@@ -221,6 +226,41 @@ fn render_idea_panel(frame: &mut Frame, area: Rect, state: &UiState) {
     frame.render_widget(paragraph, area);
 }
 
+fn render_template_bar(frame: &mut Frame, area: Rect, state: &UiState) {
+    let is_focused = state.focus == FocusArea::TemplateBar;
+
+    let border_style = if is_focused {
+        Style::default().fg(Color::Cyan)
+    } else {
+        Style::default().fg(Color::DarkGray)
+    };
+
+    let block = Block::default()
+        .title(" 提示词模板 ")
+        .borders(Borders::ALL)
+        .border_style(border_style);
+
+    let items: Vec<ListItem> = state
+        .templates
+        .iter()
+        .enumerate()
+        .map(|(i, t)| {
+            let prefix = if is_focused && i == state.template_focus_index {
+                "▸ "
+            } else {
+                "  "
+            };
+            ListItem::new(format!("{prefix}{t}"))
+        })
+        .collect();
+
+    let list = List::new(items)
+        .block(block)
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+    frame.render_widget(list, area);
+}
+
 fn render_input(frame: &mut Frame, area: Rect, state: &UiState) {
     let is_focused = state.focus == FocusArea::Input;
 
@@ -254,12 +294,17 @@ fn render_input(frame: &mut Frame, area: Rect, state: &UiState) {
 }
 
 fn render_help_bar(frame: &mut Frame, area: Rect, state: &UiState) {
+    let has_templates = !state.templates.is_empty();
     let help_text = match state.status {
         AppStatus::Error(_) => {
-            " Tab切换焦点  ↑↓滚动  r重试  /命令  q退出"
+            " Tab切换焦点  ↑↓模板  Enter选用  r重试  q退出"
         }
         _ => {
-            " Tab切换焦点  ↑↓滚动  y接受  n拒绝  Enter发送  /命令  q退出"
+            if has_templates {
+                " Tab切换焦点  ↑↓模板  Enter选用  y接受  n拒绝  Enter发送  q退出"
+            } else {
+                " Tab切换焦点  ↑↓滚动  y接受  n拒绝  Enter发送  /命令  q退出"
+            }
         }
     };
 

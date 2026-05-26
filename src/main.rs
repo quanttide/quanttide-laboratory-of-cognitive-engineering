@@ -34,6 +34,8 @@ impl App {
         let mut state = UiState::empty();
         let sessions = db.list_sessions()?;
 
+        state.templates = config.ui.thought_templates.clone();
+
         let initial_session = sessions.first().cloned();
         if let Some(ref session) = initial_session {
             let thoughts = db.get_recent_thoughts(session.id, config.ui.thought_window)?;
@@ -51,7 +53,6 @@ impl App {
             state.current_session = initial_session;
             state.status = status;
         } else {
-            // No sessions exist yet — create the default one
             let session = db.create_session(Some("默认会话"))?;
             state.sessions = vec![session.clone()];
             state.current_session = Some(session);
