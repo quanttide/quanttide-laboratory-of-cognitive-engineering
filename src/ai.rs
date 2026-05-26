@@ -19,10 +19,8 @@ impl AiClient {
     pub fn build_prompt(&self, ctx: &AiContext) -> String {
         let mut parts = Vec::new();
 
-        // System instruction
         parts.push("你是一个思考助手。根据用户提供的材料、念头流和之前已接受的想法，生成一个总结性结论或洞察。".to_string());
 
-        // Materials
         if !ctx.materials.is_empty() {
             parts.push("\n## 材料".to_string());
             for m in &ctx.materials {
@@ -34,7 +32,6 @@ impl AiClient {
             }
         }
 
-        // Previously accepted ideas (P0 feature: include accepted ideas in context)
         if !ctx.accepted_ideas.is_empty() {
             parts.push("\n## 已接受的先前想法".to_string());
             for (i, idea) in ctx.accepted_ideas.iter().enumerate() {
@@ -42,7 +39,6 @@ impl AiClient {
             }
         }
 
-        // Thoughts
         if !ctx.thoughts.is_empty() {
             parts.push("\n## 念头流（最近）".to_string());
             for t in ctx.thoughts.iter().rev() {
@@ -50,7 +46,6 @@ impl AiClient {
             }
         }
 
-        // Prompt instruction
         parts.push("\n---".to_string());
         parts.push("基于以上信息，生成一个总结性想法。请用中文回复。".to_string());
 
@@ -58,7 +53,6 @@ impl AiClient {
     }
 
     pub fn estimate_tokens(&self, text: &str) -> usize {
-        // Rough estimate: ~4 chars per token for Chinese text
         (text.len() + 3) / 4
     }
 
@@ -70,7 +64,6 @@ impl AiClient {
             return;
         }
 
-        // Truncate by reducing thoughts first, then accepted_ideas
         while !ctx.thoughts.is_empty() {
             ctx.thoughts.pop();
             let new_prompt = self.build_prompt(ctx);
@@ -79,7 +72,6 @@ impl AiClient {
             }
         }
 
-        // If still over, truncate accepted_ideas
         while !ctx.accepted_ideas.is_empty() {
             ctx.accepted_ideas.pop();
             let new_prompt = self.build_prompt(ctx);
@@ -89,10 +81,10 @@ impl AiClient {
         }
     }
 
-    pub async fn call(&self, ctx: &AiContext) -> Result<String> {
+    pub fn call(&self, ctx: &AiContext) -> Result<String> {
         let prompt = self.build_prompt(ctx);
 
-        let client = reqwest::Client::new();
+        let client = reqwest::blocking::Client::new();
         let body = serde_json::json!({
             "model": self.model,
             "messages": [
@@ -104,7 +96,6 @@ impl AiClient {
             "max_tokens": 1024,
         });
 
-        // Truncate the base_url: remove trailing /v1 if present for chat endpoint
         let base = self.base_url.trim_end_matches('/');
         let url = if base.ends_with("/v1") {
             format!("{}/chat/completions", base)
@@ -117,7 +108,6 @@ impl AiClient {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
             .send()
-            .await
             .map_err(|e| {
                 tracing::error!("AI API request failed: {e}");
                 ThinkCloudError::AiApi(format!("Request failed: {e}"))
@@ -125,14 +115,14 @@ impl AiClient {
 
         if !response.status().is_success() {
             let status = response.status();
-            let body_text = response.text().await.unwrap_or_default();
+            let body_text = response.text().unwrap_or_default();
             tracing::error!("AI API returned {status}: {body_text}");
             return Err(ThinkCloudError::AiApi(format!(
                 "API returned {status}: {body_text}"
             )));
         }
 
-        let data: serde_json::Value = response.json().await.map_err(|e| {
+        let data: serde_json::Value = response.json().map_err(|e| {
             tracing::error!("Failed to parse AI response: {e}");
             ThinkCloudError::AiApi(format!("Failed to parse response: {e}"))
         })?;
@@ -217,18 +207,15 @@ mod tests {
             max_tokens: 4096,
         };
         let prompt = client.build_prompt(&ctx);
-        // When no materials/thoughts/ideas, those sections should not appear
-        assert!(!prompt.contains("## 材料"), "Should not contain materials section");
-        assert!(!prompt.contains("## 念头流"), "Should not contain thought stream section");
-        assert!(!prompt.contains("## 已接受的先前想法"), "Should not contain accepted ideas section");
-        // System instruction still exists
-        assert!(prompt.contains("思考助手"), "Should contain system instruction");
+        assert!(!prompt.contains("## 材料"));
+        assert!(!prompt.contains("## 念头流"));
+        assert!(!prompt.contains("## 已接受的先前想法"));
+        assert!(prompt.contains("思考助手"));
     }
 
     #[test]
     fn test_estimate_tokens() {
         let client = AiClient::new("key".into(), "url".into(), "model".into());
-        // Chinese text: ~1 token per 4 chars
         let text = "这是一个测试文本用于估算token数量";
         let estimated = client.estimate_tokens(text);
         assert!(estimated > 0);
@@ -239,13 +226,11 @@ mod tests {
     fn test_truncate_context() {
         let client = AiClient::new("key".into(), "url".into(), "model".into());
         let mut ctx = make_ctx();
-        // Realistic small limit to force truncation of thoughts
         ctx.max_tokens = 50;
 
         client.truncate_context(&mut ctx);
-        // Total token estimate should now be within limit
         let prompt = client.build_prompt(&ctx);
-        assert!(client.estimate_tokens(&prompt) <= ctx.max_tokens * 2); // Allow some slack
+        assert!(client.estimate_tokens(&prompt) <= ctx.max_tokens * 2);
     }
 
     #[test]
@@ -255,7 +240,6 @@ mod tests {
         ctx.max_tokens = 10;
 
         client.truncate_context(&mut ctx);
-        // Materials should still be present (truncation starts with thoughts then ideas)
         assert!(!ctx.materials.is_empty());
     }
 
@@ -264,9 +248,6 @@ mod tests {
         let client = AiClient::new("".into(), "http://invalid".into(), "model".into());
         let ctx = make_ctx();
         let result = client.call(&ctx);
-        // Should fail because invalid URL, not because of prompt building
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let result = rt.block_on(result);
         assert!(result.is_err());
     }
 }

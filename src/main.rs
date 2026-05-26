@@ -1,720 +1,489 @@
-use std::path::PathBuf;
-use std::time::Duration;
-
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
-use tokio::sync::mpsc;
+use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
-use thinkcloud::ai::AiClient;
-use thinkcloud::config::Config;
-use thinkcloud::db::Database;
-use thinkcloud::error::Result;
-use thinkcloud::models::*;
-use thinkcloud::ui::{self, AppStatus, FocusArea, UiState};
+use qtcloud_think::ai::AiClient;
+use qtcloud_think::config::Config;
+use qtcloud_think::db::Database;
+use qtcloud_think::error::{Result, ThinkCloudError};
+use qtcloud_think::models::*;
 
-enum AppEvent {
-    AiResult(std::result::Result<String, String>),
+#[derive(Parser)]
+#[command(name = "qtcloud-think", about = "收集念头，交互产生想法")]
+struct Cli {
+    /// Active session ID (default: most recent)
+    #[arg(short, long)]
+    session: Option<i64>,
+
+    /// Material file path
+    #[arg(short, long)]
+    material: Option<String>,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// 收集一条念头，自动按主题分类并生成想法
+    Collect {
+        /// 念头内容，如 "复现步骤：缺少环境变量"
+        text: String,
+    },
+    /// 处理所有待处理的念头
+    Process,
+    /// 列出当前会话的想法
+    Ideas,
+    /// 接受一个想法
+    Accept {
+        /// 想法 ID
+        id: i64,
+    },
+    /// 拒绝一个想法
+    Reject {
+        /// 想法 ID
+        id: i64,
+    },
+    /// 管理会话
+    Session {
+        #[command(subcommand)]
+        action: SessionAction,
+    },
+    /// 列出可用的念头模板
+    Templates,
+    /// 查看当前会话状态
+    Status,
+    /// 导出会话数据为 JSON
+    Export,
+}
+
+#[derive(Subcommand)]
+enum SessionAction {
+    /// Create a new session
+    New {
+        /// Session title
+        #[arg(long)]
+        title: Option<String>,
+    },
+    /// List all sessions
+    List,
+    /// Switch to a session
+    Switch {
+        /// Session ID
+        id: i64,
+    },
 }
 
 struct App {
     db: Database,
     config: Config,
-    state: UiState,
-    ai_tx: Option<mpsc::Sender<i64>>,
-    ai_rx: mpsc::Receiver<AppEvent>,
-    cursor_position: usize,
+    current_session: Session,
 }
 
 impl App {
-    fn new(db: Database, config: Config, ai_rx: mpsc::Receiver<AppEvent>) -> Result<Self> {
-        let mut state = UiState::empty();
-        let sessions = db.list_sessions()?;
-
-        state.templates = config.ui.thought_templates.clone();
-
-        let initial_session = sessions.first().cloned();
-        if let Some(ref session) = initial_session {
-            let thoughts = db.get_recent_thoughts(session.id, config.ui.thought_window)?;
-            let materials = db.get_session_materials(session.id)?;
-            let current_idea = db.get_latest_pending_idea(session.id)?;
-            let status = if session.ai_pending {
-                AppStatus::Processing
-            } else {
-                AppStatus::Normal
-            };
-            state.thoughts = thoughts;
-            state.materials = materials;
-            state.current_idea = current_idea;
-            state.sessions = sessions;
-            state.current_session = initial_session;
-            state.status = status;
+    fn new(db: Database, config: Config, session_id: Option<i64>) -> Result<Self> {
+        let current_session = if let Some(id) = session_id {
+            db.get_session(id)?
+                .ok_or_else(|| ThinkCloudError::Other(format!("Session {id} not found")))?
         } else {
-            let session = db.create_session(Some("默认会话"))?;
-            state.sessions = vec![session.clone()];
-            state.current_session = Some(session);
-        }
-
+            let sessions = db.list_sessions()?;
+            sessions.into_iter().next().unwrap_or_else(|| {
+                db.create_session(Some("默认会话")).expect("Failed to create default session")
+            })
+        };
         Ok(Self {
             db,
             config,
-            state,
-            ai_tx: None,
-            ai_rx,
-            cursor_position: 0,
+            current_session,
         })
     }
 
-    fn set_ai_channel(&mut self, tx: mpsc::Sender<i64>) {
-        self.ai_tx = Some(tx);
+    fn switch_session(&mut self, id: i64) -> Result<()> {
+        let session = self.db.get_session(id)?
+            .ok_or_else(|| ThinkCloudError::Other(format!("Session {id} not found")))?;
+        self.current_session = session;
+        Ok(())
     }
 
-    fn trigger_ai(&mut self) -> Result<()> {
-        let session_id = match &self.state.current_session {
-            Some(s) => s.id,
-            None => return Ok(()),
-        };
+    fn submit_thought(&mut self, text: &str) -> Result<()> {
+        let text = text.trim();
+        if text.is_empty() {
+            return Err(ThinkCloudError::Other("Thought cannot be empty".into()));
+        }
 
-        // P0: Serial queue — check if AI is already pending
-        if self.state.status == AppStatus::Processing {
-            tracing::debug!("AI already processing for session {session_id}, skipping");
+        let material_id = None;
+        let thought = self.db.create_thought(self.current_session.id, material_id, text)?;
+        println!("✓ 念头已提交 #{}\n  内容: {}", thought.id, thought.content);
+        Ok(())
+    }
+
+    fn extract_category(text: &str) -> String {
+        if let Some(pos) = text.find('：') {
+            let cat = text[..pos].trim();
+            if !cat.is_empty() {
+                return cat.to_string();
+            }
+        }
+        "通用".into()
+    }
+
+    fn process_thoughts(&self) -> Result<()> {
+        let pending = self.db.get_pending_thoughts_count(self.current_session.id)?;
+        if pending == 0 {
+            println!("没有待处理的念头");
             return Ok(());
         }
 
-        // Check for pending thoughts
-        let pending_count = self.db.get_pending_thoughts_count(session_id)?;
-        if pending_count == 0 {
-            return Ok(());
+        let api_key = self.config.api_key()
+            .ok_or_else(|| ThinkCloudError::Other(
+                "DEEPSEEK_API_KEY 环境变量未设置".into()
+            ))?;
+        let client = AiClient::new(api_key, self.config.ai.base_url.clone(), self.config.ai.model.clone());
+
+        let materials = self.db.get_session_materials(self.current_session.id)?;
+        let accepted_ideas = self.db.get_accepted_ideas(self.current_session.id)?;
+        let all_thoughts = self.db.get_recent_thoughts(
+            self.current_session.id,
+            self.config.ui.thought_window,
+        )?;
+
+        // Group pending thoughts by category
+        let pending_thoughts: Vec<&Thought> = all_thoughts.iter()
+            .filter(|t| matches!(t.status, ThoughtStatus::Pending | ThoughtStatus::Processing))
+            .collect();
+
+        let mut groups: std::collections::BTreeMap<String, Vec<&Thought>> = std::collections::BTreeMap::new();
+        for t in &pending_thoughts {
+            let cat = Self::extract_category(&t.content);
+            groups.entry(cat).or_default().push(t);
         }
 
-        // Mark session as pending
-        self.db.set_session_ai_pending(session_id, true)?;
-        self.state.status = AppStatus::Processing;
+        println!("⟳ AI 处理中（{} 个主题）...", groups.len());
 
-        // Send to AI task
-        if let Some(tx) = &self.ai_tx {
-            let _ = tx.try_send(session_id);
-        }
+        let mut any_failed = false;
+        for (category, thoughts) in &groups {
+            let ctx = AiContext {
+                materials: materials.clone(),
+                thoughts: thoughts.iter().map(|t| (*t).clone()).collect(),
+                accepted_ideas: accepted_ideas.clone(),
+                max_tokens: self.config.ui.max_context_tokens,
+            };
+            let mut ctx = ctx;
+            client.truncate_context(&mut ctx);
 
-        Ok(())
-    }
-
-    fn submit_thought(&mut self, content: &str) -> Result<()> {
-        let content = content.trim();
-        if content.is_empty() {
-            return Ok(());
-        }
-
-        let session_id = match &self.state.current_session {
-            Some(s) => s.id,
-            None => return Ok(()),
-        };
-
-        // Handle commands
-        if content.starts_with(':') {
-            return self.handle_command(content);
-        }
-
-        // Save thought to DB
-        let thought = self.db.create_thought(session_id, None, content)?;
-        self.state.thoughts.push(thought);
-        self.state.input.clear();
-        self.cursor_position = 0;
-
-        // Trim thought list to window size
-        let window = self.config.ui.thought_window;
-        if self.state.thoughts.len() > window {
-            self.state.thoughts.drain(0..self.state.thoughts.len() - window);
-        }
-
-        // P0: Serial queue — trigger AI processing
-        self.trigger_ai()?;
-
-        Ok(())
-    }
-
-    fn handle_command(&mut self, cmd: &str) -> Result<()> {
-        let parts: Vec<&str> = cmd.splitn(2, ' ').collect();
-        match parts[0] {
-            ":material" | ":m" => {
-                if let Some(path) = parts.get(1) {
-                    self.load_material(path)?;
-                }
-            }
-            ":session" => {
-                if let Some(sub) = parts.get(1) {
-                    match *sub {
-                        "new" => {
-                            let session = self.db.create_session(None)?;
-                            self.state.sessions.push(session.clone());
-                            self.switch_session(session.id)?;
-                        }
-                        "switch" => {
-                            if let Some(id_str) = parts.get(2) {
-                                if let Ok(id) = id_str.parse::<i64>() {
-                                    self.switch_session(id)?;
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            ":export" => {
-                // P2: Export support
-                self.export_json()?;
-            }
-            ":help" => {
-                // Show help would go here
-            }
-            ":quit" | ":q" => {
-                // Handled at event loop level
-            }
-            _ => {}
-        }
-        self.state.input.clear();
-        self.cursor_position = 0;
-        Ok(())
-    }
-
-    fn load_material(&mut self, path: &str) -> Result<()> {
-        let path_buf = PathBuf::from(path);
-        let snippet = if path_buf.exists() {
-            std::fs::read_to_string(&path_buf)
-                .ok()
-                .map(|s| s.chars().take(200).collect::<String>())
-        } else {
-            None
-        };
-
-        let material = self.db.create_material(Some(path), snippet.as_deref())?;
-        if let Some(session) = &self.state.current_session {
-            self.db.add_material_to_session(session.id, material.id)?;
-        }
-        self.state.materials.push(material);
-        Ok(())
-    }
-
-    fn switch_session(&mut self, session_id: i64) -> Result<()> {
-        let session = match self.db.get_session(session_id)? {
-            Some(s) => s,
-            None => return Ok(()),
-        };
-        let thoughts = self.db.get_recent_thoughts(session_id, self.config.ui.thought_window)?;
-        let materials = self.db.get_session_materials(session_id)?;
-        let current_idea = self.db.get_latest_pending_idea(session_id)?;
-
-        let status = if session.ai_pending {
-            AppStatus::Processing
-        } else {
-            AppStatus::Normal
-        };
-
-        self.state.thoughts = thoughts;
-        self.state.materials = materials;
-        self.state.current_idea = current_idea;
-        self.state.current_session = Some(session);
-        self.state.status = status;
-        self.state.scroll_offset = 0;
-        Ok(())
-    }
-
-    fn accept_idea(&mut self) -> Result<()> {
-        if let Some(idea) = &self.state.current_idea {
-            self.db.update_idea_status(idea.id, &IdeaStatus::Accepted)?;
-            self.state.current_idea = None;
-            self.state.status = AppStatus::Normal;
-        }
-        Ok(())
-    }
-
-    fn reject_idea(&mut self) -> Result<()> {
-        if let Some(idea) = &self.state.current_idea {
-            self.db.update_idea_status(idea.id, &IdeaStatus::Rejected)?;
-            self.state.current_idea = None;
-            self.state.status = AppStatus::Normal;
-        }
-        Ok(())
-    }
-
-    fn retry_ai(&mut self) -> Result<()> {
-        if let AppStatus::Error(_) = &self.state.status {
-            self.state.status = AppStatus::Normal;
-            // Mark any failed thoughts as pending again
-            if let Some(_session) = &self.state.current_session {
-                for thought in &mut self.state.thoughts {
-                    if thought.status == ThoughtStatus::Failed {
-                        self.db.update_thought_status(thought.id, &ThoughtStatus::Pending)?;
-                        thought.status = ThoughtStatus::Pending;
-                    }
-                }
-            }
-            self.trigger_ai()?;
-        }
-        Ok(())
-    }
-
-    fn handle_ai_result(&mut self, result: std::result::Result<String, String>) -> Result<()> {
-        let session_id = match &self.state.current_session {
-            Some(s) => s.id,
-            None => return Ok(()),
-        };
-
-        // Clear AI pending flag
-        self.db.set_session_ai_pending(session_id, false)?;
-
-        match result {
-            Ok(content) => {
-                // Create the idea and link to pending thoughts
-                let idea = self.db.create_idea(session_id, &content)?;
-
-                // Find thought IDs that were pending and link them
-                let thought_ids: Vec<i64> = self
-                    .state
-                    .thoughts
-                    .iter()
-                    .filter(|t| matches!(t.status, ThoughtStatus::Pending | ThoughtStatus::Processing))
-                    .map(|t| t.id)
-                    .collect();
-
-                if !thought_ids.is_empty() {
+            println!("  [{category}] AI 处理中（{} 条念头）...", thoughts.len());
+            match client.call(&ctx) {
+                Ok(content) => {
+                    let idea = self.db.create_idea(self.current_session.id, &content)?;
+                    let thought_ids: Vec<i64> = thoughts.iter().map(|t| t.id).collect();
                     self.db.link_idea_to_thoughts(idea.id, &thought_ids)?;
-                    // Mark those thoughts as completed
                     for tid in &thought_ids {
                         self.db.update_thought_status(*tid, &ThoughtStatus::Completed)?;
                     }
-                    for t in &mut self.state.thoughts {
-                        if thought_ids.contains(&t.id) {
-                            t.status = ThoughtStatus::Completed;
-                        }
-                    }
+                    println!("\n💡 [{category}] 想法 #{}\n{}", idea.id, idea.content);
+                    println!("\n   qtcloud-think accept {}  — 接受", idea.id);
+                    println!("   qtcloud-think reject {}   — 拒绝", idea.id);
                 }
-
-                self.state.current_idea = Some(idea);
-                self.state.status = AppStatus::Normal;
-
-                // P0: Serial queue drain — check if more pending thoughts came in while processing
-                if self.db.get_pending_thoughts_count(session_id)? > 0 {
-                    self.trigger_ai()?;
-                }
-            }
-            Err(e) => {
-                tracing::error!("AI processing failed: {e}");
-                // Mark pending thoughts as failed
-                for t in &mut self.state.thoughts {
-                    if t.status == ThoughtStatus::Pending || t.status == ThoughtStatus::Processing {
+                Err(e) => {
+                    any_failed = true;
+                    for t in thoughts {
                         self.db.update_thought_status(t.id, &ThoughtStatus::Failed)?;
-                        t.status = ThoughtStatus::Failed;
                     }
+                    eprintln!("  [{category}] ✗ AI 处理失败: {e}");
                 }
-                self.state.status = AppStatus::Error(e);
             }
         }
 
+        if any_failed {
+            Err(ThinkCloudError::Other("部分念头处理失败".into()))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn list_ideas(&self) -> Result<()> {
+        let ideas = self.db.get_recent_ideas(self.current_session.id, 20)?;
+        if ideas.is_empty() {
+            println!("当前会话没有想法");
+            return Ok(());
+        }
+
+        for idea in &ideas {
+            let status_char = match idea.status {
+                IdeaStatus::Pending => "○",
+                IdeaStatus::Accepted => "✓",
+                IdeaStatus::Rejected => "✗",
+                IdeaStatus::Failed => "⚠",
+            };
+            println!(" [#{}] {}  {}", idea.id, status_char, idea.content);
+        }
+        Ok(())
+    }
+
+    fn accept_idea(&self, id: i64) -> Result<()> {
+        self.db.update_idea_status(id, &IdeaStatus::Accepted)?;
+        println!("✓ 想法 #{id} 已接受");
+        Ok(())
+    }
+
+    fn reject_idea(&self, id: i64) -> Result<()> {
+        self.db.update_idea_status(id, &IdeaStatus::Rejected)?;
+        println!("✓ 想法 #{id} 已拒绝");
+        Ok(())
+    }
+
+    fn show_templates(&self) {
+        println!("可用念头模板：");
+        for (i, t) in self.config.ui.thought_templates.iter().enumerate() {
+            println!("  {}. {}", i + 1, t);
+        }
+        println!("\n用法: qtcloud-think collect \"模板文本 + 你的内容\"");
+    }
+
+    fn show_status(&self) -> Result<()> {
+        let session = &self.current_session;
+        let thought_count = self.db.get_recent_thoughts(session.id, 10000).unwrap_or_default().len();
+        let idea_count = self.db.get_recent_ideas(session.id, 10000).unwrap_or_default().len();
+        let pending = self.db.get_pending_thoughts_count(session.id)?;
+        let materials = self.db.get_session_materials(session.id)?;
+
+        println!("会话 #{}", session.id);
+        println!("  标题: {}", session.title.as_deref().unwrap_or("未命名"));
+        println!("  材料: {} 个", materials.len());
+        for m in &materials {
+            println!("    - {}", m.path.as_deref().unwrap_or("unnamed"));
+        }
+        println!("  念头: {} 条（{} 条待处理）", thought_count, pending);
+        println!("  想法: {} 条", idea_count);
         Ok(())
     }
 
     fn export_json(&self) -> Result<()> {
-        if let Some(session) = &self.state.current_session {
-            let thoughts = self.db.get_recent_thoughts(session.id, 10000).unwrap_or_default();
-            let ideas = self.db.get_recent_ideas(session.id, 10000).unwrap_or_default();
-            let materials = self.db.get_session_materials(session.id).unwrap_or_default();
+        let session = &self.current_session;
+        let thoughts = self.db.get_recent_thoughts(session.id, 10000).unwrap_or_default();
+        let ideas = self.db.get_recent_ideas(session.id, 10000).unwrap_or_default();
+        let materials = self.db.get_session_materials(session.id).unwrap_or_default();
 
-            let export = serde_json::json!({
-                "session": {
-                    "id": session.id,
-                    "title": session.title,
-                },
-                "thoughts": thoughts,
-                "ideas": ideas,
-                "materials": materials,
-            });
+        let export = serde_json::json!({
+            "session": {
+                "id": session.id,
+                "title": session.title,
+            },
+            "thoughts": thoughts,
+            "ideas": ideas,
+            "materials": materials,
+        });
 
-            let json_str = serde_json::to_string_pretty(&export).unwrap_or_default();
-            let export_path = PathBuf::from(format!(
-                "thinkcloud_export_session_{}.json",
-                session.id
-            ));
-            std::fs::write(&export_path, json_str).ok();
-        }
+        let json_str = serde_json::to_string_pretty(&export).unwrap_or_default();
+        let path = format!("qtcloud_session_{}.json", session.id);
+        std::fs::write(&path, &json_str)?;
+        println!("✓ 已导出到 {path}");
         Ok(())
     }
 }
 
-async fn ai_worker(
-    db_path: PathBuf,
-    config: Config,
-    mut rx: mpsc::Receiver<i64>,
-    result_tx: mpsc::Sender<AppEvent>,
-) {
-    let db = match Database::open(&db_path) {
-        Ok(db) => db,
-        Err(e) => {
-            tracing::error!("Failed to open database in AI worker: {e}");
-            return;
-        }
-    };
-
-    let Some(api_key) = config.api_key() else {
-        tracing::error!("No API key configured for AI worker");
-        return;
-    };
-
-    let client = AiClient::new(api_key, config.ai.base_url.clone(), config.ai.model.clone());
-
-    while let Some(session_id) = rx.recv().await {
-        tracing::info!("AI worker processing session {session_id}");
-
-        // Build context
-        let ctx = match db.get_ai_context(session_id, config.ui.thought_window, config.ui.max_context_tokens) {
-            Ok(ctx) => ctx,
-            Err(e) => {
-                let _ = result_tx.send(AppEvent::AiResult(Err(format!("Context build failed: {e}")))).await;
-                continue;
-            }
-        };
-
-        // Truncate if needed (P2: token budget)
-        let mut ctx = ctx;
-        client.truncate_context(&mut ctx);
-
-        // Call AI
-        let result = client.call(&ctx).await;
-        let event = match result {
-            Ok(content) => AppEvent::AiResult(Ok(content)),
-            Err(e) => AppEvent::AiResult(Err(format!("{e}"))),
-        };
-        let _ = result_tx.send(event).await;
-    }
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")))
         .init();
 
     let config = Config::load()?;
     let db_path = config.storage.data_dir.join("thinkcloud.db");
-
-    // Ensure data directory exists
     if let Some(parent) = db_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
 
     let db = Database::open(&db_path)?;
+    let cli = Cli::parse();
 
-    // Use default session if none exists
-    let sessions = db.list_sessions()?;
-    if sessions.is_empty() {
-        db.create_session(Some("默认会话"))?;
-    }
-
-    // Channels for AI worker communication
-    let (ai_tx, ai_rx_channel) = mpsc::channel::<i64>(32);
-    let (result_tx, result_rx) = mpsc::channel::<AppEvent>(32);
-
-    // Spawn AI worker
-    let worker_db_path = db_path.clone();
-    let worker_config = config.clone();
-    tokio::spawn(async move {
-        ai_worker(worker_db_path, worker_config, ai_rx_channel, result_tx).await;
-    });
-
-    // Initialize app
-    let mut app = App::new(db, config, result_rx)?;
-    app.set_ai_channel(ai_tx);
-
-    // Setup terminal
-    let stdout = std::io::stdout();
-    let mut stdout = stdout.lock();
-    let backend = CrosstermBackend::new(&mut stdout);
-    let mut terminal = Terminal::new(backend)?;
-    terminal.clear()?;
-
-    // Enter raw mode
-    crossterm::terminal::enable_raw_mode()?;
-    let result = Ok(());
-
-    // Event loop
-    loop {
-        // Draw
-        terminal.draw(|frame| {
-            ui::render_ui(frame, &app.state);
-        })?;
-
-        // Poll for events with timeout
-        tokio::select! {
-            biased;
-
-            // Check for AI results
-            event = app.ai_rx.recv() => {
-                match event {
-                    Some(AppEvent::AiResult(result)) => {
-                        if let Err(e) = app.handle_ai_result(result) {
-                            tracing::error!("Failed to handle AI result: {e}");
-                        }
-                    }
-                    None => break,
-                }
-            }
-
-            // Check for keyboard input
-            _ = tokio::task::spawn_blocking(|| {
-                event::poll(Duration::from_millis(100))
-            }) => {
-                if event::poll(Duration::from_millis(0)).unwrap_or(false) {
-                    if let Ok(Event::Key(key)) = event::read() {
-                        if key.kind == KeyEventKind::Press {
-                            match key.code {
-                                KeyCode::Char('q') => break,
-                                KeyCode::Char('y') | KeyCode::Char('Y') => {
-                                    if let Err(e) = app.accept_idea() {
-                                        tracing::error!("{e}");
-                                    }
-                                }
-                                KeyCode::Char('n') | KeyCode::Char('N') => {
-                                    if let Err(e) = app.reject_idea() {
-                                        tracing::error!("{e}");
-                                    }
-                                }
-                                KeyCode::Char('r') | KeyCode::Char('R') => {
-                                    if let Err(e) = app.retry_ai() {
-                                        tracing::error!("{e}");
-                                    }
-                                }
-                                KeyCode::Tab => {
-                                    app.state.focus = match app.state.focus {
-                                        FocusArea::ThoughtList => FocusArea::IdeaPanel,
-                                        FocusArea::IdeaPanel => FocusArea::Input,
-                                        FocusArea::Input => FocusArea::ThoughtList,
-                                    };
-                                }
-                                KeyCode::Up => {
-                                    if app.state.focus == FocusArea::ThoughtList {
-                                        app.state.scroll_offset = app.state.scroll_offset.saturating_sub(1);
-                                    }
-                                }
-                                KeyCode::Down => {
-                                    if app.state.focus == FocusArea::ThoughtList {
-                                        app.state.scroll_offset = app.state.scroll_offset.saturating_add(1);
-                                    }
-                                }
-                                KeyCode::Enter => {
-                                    if app.state.focus == FocusArea::Input {
-                                        let input = app.state.input.clone();
-                                        if input == ":quit" || input == ":q" {
-                                            break;
-                                        }
-                                        if let Err(e) = app.submit_thought(&input) {
-                                            tracing::error!("{e}");
-                                        }
-                                    }
-                                }
-                                KeyCode::Backspace => {
-                                    if app.state.focus == FocusArea::Input && !app.state.input.is_empty() {
-                                        let pos = app.cursor_position;
-                                        if pos > 0 {
-                                            app.state.input.remove(pos - 1);
-                                            app.cursor_position = pos - 1;
-                                        }
-                                    }
-                                }
-                                KeyCode::Char(c) => {
-                                    if app.state.focus == FocusArea::Input {
-                                        app.state.input.push(c);
-                                        app.cursor_position = app.state.input.len();
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                }
-            }
+    // Handle material flag globally — load before command
+    if let Some(ref path) = cli.material {
+        let material = db.create_material(Some(path), None)?;
+        let sessions = db.list_sessions()?;
+        if let Some(session) = sessions.first() {
+            db.add_material_to_session(session.id, material.id)?;
         }
     }
 
-    // Cleanup
-    crossterm::terminal::disable_raw_mode()?;
-    terminal.show_cursor()?;
-    terminal.clear()?;
+    let mut app = App::new(db, config, cli.session)?;
 
-    result
+    match cli.command {
+        Commands::Collect { text } => {
+            app.submit_thought(&text)?;
+            app.process_thoughts()?;
+        }
+        Commands::Process => {
+            app.process_thoughts()?;
+        }
+        Commands::Ideas => {
+            app.list_ideas()?;
+        }
+        Commands::Accept { id } => {
+            app.accept_idea(id)?;
+        }
+        Commands::Reject { id } => {
+            app.reject_idea(id)?;
+        }
+        Commands::Session { action } => match action {
+            SessionAction::New { title } => {
+                let session = app.db.create_session(title.as_deref())?;
+                println!("✓ 已创建会话 #{}", session.id);
+                println!("  使用 qtcloud-think -s {} 切换到此会话", session.id);
+            }
+            SessionAction::List => {
+                let sessions = app.db.list_sessions()?;
+                for s in &sessions {
+                    let marker = if s.id == app.current_session.id { " ◀" } else { "" };
+                    println!("  #{}  {}{}", s.id, s.title.as_deref().unwrap_or("未命名"), marker);
+                }
+            }
+            SessionAction::Switch { id } => {
+                app.switch_session(id)?;
+                println!("✓ 已切换到会话 #{id}");
+            }
+        },
+        Commands::Templates => {
+            app.show_templates();
+        }
+        Commands::Status => {
+            app.show_status()?;
+        }
+        Commands::Export => {
+            app.export_json()?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use thinkcloud::db::Database;
-    use tokio::sync::mpsc;
+    use qtcloud_think::db::Database;
 
-    fn setup_test_app() -> App {
+    fn setup_app() -> App {
         let db = Database::open_in_memory().unwrap();
         let config = Config::default();
-        let (_, rx) = mpsc::channel(32);
-        App::new(db, config, rx).unwrap()
+        App::new(db, config, None).unwrap()
     }
 
     #[test]
     fn test_app_creates_default_session() {
-        let app = setup_test_app();
-        assert!(app.state.current_session.is_some());
-        assert_eq!(app.state.sessions.len(), 1);
+        let app = setup_app();
+        assert!(app.current_session.id > 0);
     }
 
     #[test]
     fn test_submit_thought() {
-        let mut app = setup_test_app();
-        app.submit_thought("test thought").unwrap();
-        assert_eq!(app.state.thoughts.len(), 1);
-        assert_eq!(app.state.thoughts[0].content, "test thought");
-        assert!(app.state.input.is_empty());
+        let mut app = setup_app();
+        app.submit_thought("复现步骤：缺少环境变量").unwrap();
+        let thoughts = app.db.get_recent_thoughts(app.current_session.id, 10).unwrap();
+        assert_eq!(thoughts.len(), 1);
+        assert_eq!(thoughts[0].content, "复现步骤：缺少环境变量");
     }
 
     #[test]
-    fn test_submit_empty_thought() {
-        let mut app = setup_test_app();
-        app.submit_thought("  ").unwrap();
-        assert!(app.state.thoughts.is_empty());
+    fn test_submit_empty_thought_fails() {
+        let mut app = setup_app();
+        let result = app.submit_thought("  ");
+        assert!(result.is_err());
     }
 
     #[test]
     fn test_accept_idea() {
-        let mut app = setup_test_app();
-        let session_id = app.state.current_session.as_ref().unwrap().id;
-
-        let idea = app.db.create_idea(session_id, "test idea").unwrap();
-        app.state.current_idea = Some(idea);
-
-        app.accept_idea().unwrap();
-        assert!(app.state.current_idea.is_none());
-
-        let ideas = app.db.get_accepted_ideas(session_id).unwrap();
-        assert_eq!(ideas.len(), 1);
-        assert_eq!(ideas[0].status, IdeaStatus::Accepted);
+        let app = setup_app();
+        let idea = app.db.create_idea(app.current_session.id, "test idea").unwrap();
+        app.accept_idea(idea.id).unwrap();
+        let accepted = app.db.get_accepted_ideas(app.current_session.id).unwrap();
+        assert_eq!(accepted.len(), 1);
+        assert_eq!(accepted[0].status, IdeaStatus::Accepted);
     }
 
     #[test]
     fn test_reject_idea() {
-        let mut app = setup_test_app();
-        let session_id = app.state.current_session.as_ref().unwrap().id;
-
-        let idea = app.db.create_idea(session_id, "test idea").unwrap();
-        app.state.current_idea = Some(idea);
-
-        app.reject_idea().unwrap();
-        assert!(app.state.current_idea.is_none());
+        let app = setup_app();
+        let idea = app.db.create_idea(app.current_session.id, "test idea").unwrap();
+        app.reject_idea(idea.id).unwrap();
     }
 
     #[test]
     fn test_switch_session() {
-        let mut app = setup_test_app();
-        let s1 = app.state.current_session.as_ref().unwrap().clone();
-
+        let mut app = setup_app();
+        let s1 = app.current_session.id;
         let s2 = app.db.create_session(Some("session 2")).unwrap();
-        app.db.create_thought(s2.id, None, "thought in s2").unwrap();
 
         app.switch_session(s2.id).unwrap();
-        assert_eq!(app.state.current_session.as_ref().unwrap().id, s2.id);
-        assert_eq!(app.state.thoughts.len(), 1);
-        assert_eq!(app.state.thoughts[0].content, "thought in s2");
+        assert_eq!(app.current_session.id, s2.id);
 
-        app.switch_session(s1.id).unwrap();
-        assert_eq!(app.state.current_session.as_ref().unwrap().id, s1.id);
-        assert!(app.state.thoughts.is_empty());
+        app.switch_session(s1).unwrap();
+        assert_eq!(app.current_session.id, s1);
     }
 
     #[test]
-    fn test_load_material() {
-        let mut app = setup_test_app();
-        app.load_material("test.txt").unwrap();
-        assert_eq!(app.state.materials.len(), 1);
-        assert_eq!(app.state.materials[0].path.as_deref(), Some("test.txt"));
-
-        let session_id = app.state.current_session.as_ref().unwrap().id;
-        let mats = app.db.get_session_materials(session_id).unwrap();
-        assert_eq!(mats.len(), 1);
+    fn test_switch_session_not_found() {
+        let mut app = setup_app();
+        let result = app.switch_session(999);
+        assert!(result.is_err());
     }
 
     #[test]
-    fn test_retry_ai_clears_error_state() {
-        let mut app = setup_test_app();
-        app.state.status = AppStatus::Error("network error".into());
-        app.submit_thought("test for retry").unwrap();
-
-        app.retry_ai().unwrap();
-        assert_eq!(app.state.status, AppStatus::Processing);
+    fn test_list_ideas_empty() {
+        let app = setup_app();
+        // Should not crash
+        app.list_ideas().unwrap();
     }
 
     #[test]
-    fn test_handle_command_material() {
-        let mut app = setup_test_app();
-        app.handle_command(":material test.txt").unwrap();
-        assert_eq!(app.state.materials.len(), 1);
-        assert!(app.state.input.is_empty());
+    fn test_show_status() {
+        let app = setup_app();
+        app.show_status().unwrap();
     }
 
     #[test]
-    fn test_handle_command_session_new() {
-        let mut app = setup_test_app();
-        let original_len = app.state.sessions.len();
-        app.handle_command(":session new").unwrap();
-        assert_eq!(app.state.sessions.len(), original_len + 1);
+    fn test_extract_category() {
+        assert_eq!(App::extract_category("复现步骤：缺少环境变量"), "复现步骤");
+        assert_eq!(App::extract_category("根因分析：时区问题"), "根因分析");
+        assert_eq!(App::extract_category("我想引入资产价值分级"), "通用");
+        assert_eq!(App::extract_category("：只有冒号"), "通用");
+        assert_eq!(App::extract_category(""), "通用");
     }
 
     #[test]
-    fn test_serial_queue_blocks_when_processing() {
-        let mut app = setup_test_app();
-        app.state.status = AppStatus::Processing;
-
-        app.db.create_thought(
-            app.state.current_session.as_ref().unwrap().id,
-            None,
-            "test",
-        ).unwrap();
-        app.trigger_ai().unwrap();
-        assert_eq!(app.state.status, AppStatus::Processing);
+    fn test_process_no_pending_thoughts() {
+        let app = setup_app();
+        app.process_thoughts().unwrap();
     }
 
     #[test]
-    fn test_serial_queue_drain() {
-        let mut app = setup_test_app();
-        let session_id = app.state.current_session.as_ref().unwrap().id;
-
-        app.submit_thought("thought 1").unwrap();
-        assert_eq!(app.state.status, AppStatus::Processing);
-
-        app.handle_ai_result(Ok("AI result".into())).unwrap();
-        assert_eq!(app.state.status, AppStatus::Normal);
-        assert!(app.state.current_idea.is_some());
-        assert_eq!(app.state.current_idea.as_ref().unwrap().content, "AI result");
-
-        let ideas = app.db.get_recent_ideas(session_id, 10).unwrap();
-        assert_eq!(ideas.len(), 1);
-        assert_eq!(ideas[0].content, "AI result");
-        assert_eq!(ideas[0].status, IdeaStatus::Pending);
-    }
-
-    #[test]
-    fn test_ai_error_sets_failed_status() {
-        let mut app = setup_test_app();
-
-        app.submit_thought("will fail").unwrap();
-
-        app.handle_ai_result(Err("API error".into())).unwrap();
-        assert_eq!(app.state.status, AppStatus::Error("API error".into()));
-
-        let has_failed = app.state.thoughts.iter().any(|t| t.status == ThoughtStatus::Failed);
-        assert!(has_failed);
+    fn test_extract_category_groups_thoughts() {
+        let thoughts = [
+            "复现步骤：缺少环境变量",
+            "根因分析：时区问题",
+            "我想引入资产价值分级",
+        ];
+        let categories: Vec<String> = thoughts.iter().map(|t| App::extract_category(t)).collect();
+        assert_eq!(categories[0], "复现步骤");
+        assert_eq!(categories[1], "根因分析");
+        assert_eq!(categories[2], "通用");
+        // All different categories — no over-correlation
+        let unique: std::collections::HashSet<&str> =
+            categories.iter().map(|s| s.as_str()).collect();
+        assert_eq!(unique.len(), 3);
     }
 
     #[test]
     fn test_export_json() {
-        let app = setup_test_app();
+        let app = setup_app();
         app.export_json().unwrap();
+        // Clean up
+        let path = format!("qtcloud_session_{}.json", app.current_session.id);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_cli_missing_session() {
+        let db = Database::open_in_memory().unwrap();
+        let config = Config::default();
+        let result = App::new(db, config, Some(999));
+        assert!(result.is_err());
     }
 }

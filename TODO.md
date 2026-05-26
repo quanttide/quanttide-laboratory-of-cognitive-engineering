@@ -1,27 +1,26 @@
-# TODO
+# TODO (CLI)
 
-## P0 — 必须完成
+## P0 — 核心流程
 
-- [x] AI 上下文策略补充：已接受的 ideas 作为可选上下文加入 prompt
-- [x] 定义并发 AI 调用策略：串行队列（每 session 一个 pending flag），禁止并行
-- [x] 修正错误状态模型：`thoughts.status` 仅表示念头本身状态，`ideas.status` 增加 `failed`
-- [x] 空状态处理：首次启动无念头、无材料、无想法时的界面展示
+- [x] `thinkcloud think <text>` — 提交念头 + AI 处理
+- [x] `thinkcloud process` — 手动触发 AI 处理
+- [x] `thinkcloud ideas` — 列出想法
+- [x] `thinkcloud accept/reject <id>` — 接受/拒绝想法
+- [x] 念头模板提示词（config 可配，`templates` 命令查看）
 
-## P1 — 重要
+## P1 — 会话管理
 
-- [x] 数据模型：`sessions.material_id` 改为 `session_materials` 关联表（一对多）
-- [x] 数据模型：`thoughts` 和 `ideas` 增加 `sort_order INTEGER` 排序字段
-- [x] 统一快捷键文档：`y`/`n`/`r`/`:m`/`:material` 在界面和交互流程中一致列出
-- [x] 定义键盘导航：tab 切换面板、方向键滚动念头列表
+- [x] `thinkcloud session new/list/switch` — 会话生命周期
+- [x] `thinkcloud status` — 当前会话概览
+- [x] `thinkcloud export` — 导出 JSON
 
-## P2 — 增强
+## P2 — 基础设施
 
-- [x] 集成 `tracing` 日志，方便诊断 AI 调用失败原因
-- [x] 定义 token 预算策略：窗口超限时控制输入长度
-- [x] MVP 即支持 `:export json` 数据导出
-- [x] 确认环境变量命名规范：`THINKCLOUD_API_KEY`
+- [x] `DEEPSEEK_API_KEY` 环境变量
+- [x] `tracing` 日志
+- [x] token 预算控制
 
 ## 测试覆盖率
 
-- 49 个测试全部通过，0 失败
-- 覆盖模块：models（状态枚举序列化/反序列化）、config（默认值/序列化/TOML解析）、db（CRUD/关联/上下文构建/串行队列）、ai（prompt构建/截断）、ui（空状态/错误/处理中/渲染）、main（App状态机/会话切换/命令处理/导出）
+- 40 个测试全部通过，0 失败
+- 覆盖模块：config（默认值/序列化/TOML解析）、db（CRUD/关联/上下文构建/串行队列）、ai（prompt构建/截断）、main（CLI 命令路由/会话切换/想法操作/导出）

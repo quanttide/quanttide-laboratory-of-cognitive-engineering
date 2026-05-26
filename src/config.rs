@@ -11,9 +11,9 @@ pub struct AiConfig {
 impl Default for AiConfig {
     fn default() -> Self {
         Self {
-            provider: "openai".to_string(),
-            base_url: "https://api.openai.com/v1".to_string(),
-            model: "gpt-4o".to_string(),
+            provider: "deepseek".to_string(),
+            base_url: "https://api.deepseek.com/v1".to_string(),
+            model: "deepseek-chat".to_string(),
         }
     }
 }
@@ -25,7 +25,11 @@ pub struct StorageConfig {
 
 impl Default for StorageConfig {
     fn default() -> Self {
-        let base = dirs::data_dir().unwrap_or_else(|| PathBuf::from("~/.local/share"));
+        let base = dirs::data_dir().unwrap_or_else(|| {
+            dirs::home_dir()
+                .map(|h| h.join(".local").join("share"))
+                .unwrap_or_else(|| PathBuf::from("/tmp/thinkcloud"))
+        });
         Self {
             data_dir: base.join("thinkcloud"),
         }
@@ -103,26 +107,25 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert_eq!(config.ai.provider, "openai");
-        assert_eq!(config.ai.model, "gpt-4o");
+        assert_eq!(config.ai.provider, "deepseek");
+        assert_eq!(config.ai.model, "deepseek-chat");
         assert_eq!(config.ui.thought_window, 10);
         assert_eq!(config.ui.max_context_tokens, 4096);
+        assert!(!config.ui.thought_templates.is_empty());
+        assert_eq!(config.ui.thought_templates[0], "复现步骤：");
     }
 
     #[test]
     fn test_api_key_env_var() {
         let config = Config::default();
 
-        // Save original and clear
         let original = std::env::var("DEEPSEEK_API_KEY").ok();
         std::env::remove_var("DEEPSEEK_API_KEY");
         assert!(config.api_key().is_none());
 
-        // Set and verify
         std::env::set_var("DEEPSEEK_API_KEY", "test-key");
         assert_eq!(config.api_key(), Some("test-key".to_string()));
 
-        // Restore original
         match original {
             Some(v) => std::env::set_var("DEEPSEEK_API_KEY", v),
             None => std::env::remove_var("DEEPSEEK_API_KEY"),
@@ -152,6 +155,7 @@ data_dir = "/tmp/thinkcloud"
 [ui]
 thought_window = 20
 max_context_tokens = 2048
+thought_templates = ["步骤：", "原因："]
 "#;
         let config: Config = toml::from_str(toml_str).unwrap();
         assert_eq!(config.ai.provider, "ollama");
