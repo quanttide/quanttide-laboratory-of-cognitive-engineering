@@ -36,6 +36,7 @@ impl Default for StorageConfig {
 pub struct UiConfig {
     pub thought_window: usize,
     pub max_context_tokens: usize,
+    pub thought_templates: Vec<String>,
 }
 
 impl Default for UiConfig {
@@ -43,6 +44,16 @@ impl Default for UiConfig {
         Self {
             thought_window: 10,
             max_context_tokens: 4096,
+            thought_templates: vec![
+                "复现步骤：".into(),
+                "根因分析：".into(),
+                "影响范围：".into(),
+                "解决方案：".into(),
+                "预期行为：".into(),
+                "实际行为：".into(),
+                "日志关键信息：".into(),
+                "待确认问题：".into(),
+            ],
         }
     }
 }
@@ -66,7 +77,7 @@ impl Default for Config {
 
 impl Config {
     pub fn api_key(&self) -> Option<String> {
-        std::env::var("THINKCLOUD_API_KEY").ok()
+        std::env::var("DEEPSEEK_API_KEY").ok()
     }
 
     pub fn load() -> crate::error::Result<Self> {
@@ -101,14 +112,21 @@ mod tests {
     #[test]
     fn test_api_key_env_var() {
         let config = Config::default();
-        // No env var set
+
+        // Save original and clear
+        let original = std::env::var("DEEPSEEK_API_KEY").ok();
+        std::env::remove_var("DEEPSEEK_API_KEY");
         assert!(config.api_key().is_none());
 
-        // With env var set — use std::env::set_var in a scoped way
-        // Note: set_var is not scoped, so we test the logic directly
-        std::env::set_var("THINKCLOUD_API_KEY", "test-key");
+        // Set and verify
+        std::env::set_var("DEEPSEEK_API_KEY", "test-key");
         assert_eq!(config.api_key(), Some("test-key".to_string()));
-        std::env::remove_var("THINKCLOUD_API_KEY");
+
+        // Restore original
+        match original {
+            Some(v) => std::env::set_var("DEEPSEEK_API_KEY", v),
+            None => std::env::remove_var("DEEPSEEK_API_KEY"),
+        }
     }
 
     #[test]
