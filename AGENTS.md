@@ -25,4 +25,4 @@
 ## 命名规范
 - 模型名用英文（Notion / Topic / Intent / Thought）
 - 文件名全小写 + 连字符，用单数（`intent-relation.md`）
-- 目录按功能组织（`data/raw/` 原始数据，`data/cleaned/` 清洗产物，`data/formal/` 正式数据，`docs/` 文档）
+- 目录按功能组织（`data/raw/` 原始数据，`data/formal/` 正式数据，`docs/` 文档）
