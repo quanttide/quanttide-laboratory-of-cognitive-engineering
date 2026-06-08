@@ -306,7 +306,7 @@ impl IntentGraph {
         }
     }
 
-    pub fn save_json(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn to_data(&self) -> GraphData {
         let mut nodes = Vec::new();
         let mut edges = Vec::new();
         let id_by_index: HashMap<NodeIndex, u32> = self
@@ -328,7 +328,11 @@ impl IntentGraph {
                 weight: e.weight().clone(),
             });
         }
-        let data = GraphData { nodes, edges };
+        GraphData { nodes, edges }
+    }
+
+    pub fn save_json(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let data = self.to_data();
         if let Some(parent) = Path::new(path).parent() {
             fs::create_dir_all(parent)?;
         }
