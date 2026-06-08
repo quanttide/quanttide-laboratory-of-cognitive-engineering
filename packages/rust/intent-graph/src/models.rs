@@ -109,7 +109,7 @@ pub struct InferenceOutput {
     pub candidate_edges: Vec<CandidateEdge>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeywordEntry {
     pub id: u32,
     pub name: String,

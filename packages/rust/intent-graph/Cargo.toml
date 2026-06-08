@@ -1,5 +1,5 @@
 [package]
-name = "project-04"
+name = "intent-graph"
 version = "0.1.0"
 edition = "2024"
 
