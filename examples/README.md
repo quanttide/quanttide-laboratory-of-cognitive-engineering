@@ -97,6 +97,4 @@
 |:----|------|:----:|
 | [project-01](./project-01/) | W23 端到端流水线：topic → intent → relation → thought | ✅ 完成 |
 | [project-02](./project-02/) | W19-W22 跨周分析 + 综合意图分析报告 | ✅ 完成 |
-| [project-03](./project-03/) | 方案A：文本匹配意图识别（关键词，不用图） | 🛠 设计中 |
-| [project-04](./project-04/) | 方案B：图谱推理意图识别（petgraph BFS） | 🛠 设计中 |
-| [project-05](./project-05/) | 方案A vs 方案B 对比测评 | 🛠 设计中 |
+| [project-04](./project-04/) | 方案B：图谱推理意图识别（petgraph BFS） | ✅ 完成 |
