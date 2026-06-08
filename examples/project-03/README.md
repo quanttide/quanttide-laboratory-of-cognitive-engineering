@@ -27,9 +27,30 @@
 **方法**：
 1. 从 `intent.yaml` 提取 10 个节点（id, name, type, per_week intents）
 2. 从 `intent-relation.yaml` 提取边（source, target, type, logic, weeks），包含 stable/periodic/situational 三类
-3. 序列化为 `graph.json`（节点集合 + 边集合）
+3. 序列化为 `data/graph.json`
 
-**输出**：`data/graph.json`
+**输出**：`data/graph.json` + Rust 中的图数据结构
+
+```rust
+// src/graph.rs — 实际用于图计算的结构
+struct Node {
+    id: u32,
+    name: String,
+    r#type: String,
+}
+
+struct Edge {
+    source: u32,
+    target: u32,
+    relation_type: String, // "支持" | "冲突" | "依赖" | "包含"
+    logic: String,
+}
+
+struct Graph {
+    nodes: Vec<Node>,
+    edges: Vec<Edge>,
+}
+```
 
 ### 3.2 方案A：文本匹配（不用图）
 
