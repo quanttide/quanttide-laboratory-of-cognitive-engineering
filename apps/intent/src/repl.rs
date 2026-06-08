@@ -41,7 +41,7 @@ impl Repl {
             let (parsed, raw) = self.engine.process_with_state(input, &state)?;
             let matched = self.engine.match_with_history(input, &state);
             let state_before = state.clone();
-            let has_new = !parsed.discovery_update.new_clusters.is_empty()
+            let has_new = !parsed.discovery_update.new_situations.is_empty()
                 || !parsed.discovery_update.new_node_ids.is_empty()
                 || !parsed.discovery_update.new_edge_ids.is_empty();
 
@@ -51,7 +51,7 @@ impl Repl {
                 id: format!("{}_{}", now, n),
                 timestamp: now,
                 input: input.to_string(),
-                matched_clusters: matched,
+                matched_situations: matched,
                 state_before,
                 state_after: state.clone(),
                 llm_raw: raw,
@@ -88,7 +88,7 @@ fn print_turn_output(parsed: &ParsedResponse, state: &DiscoveryState, has_new: b
         } else {
             println!("🎵 母题：{}", m.motif_statement);
             for v in &m.variations {
-                println!("   簇{} ({}): {}", v.cluster_id, v.week, v.form);
+                println!("   情境{} ({}): {}", v.situation_id, v.week, v.form);
             }
         }
         if !m.motif_arc.is_empty() {
@@ -97,8 +97,8 @@ fn print_turn_output(parsed: &ParsedResponse, state: &DiscoveryState, has_new: b
     }
 
     if has_new {
-        println!("🆕 簇: {:?}  边: {:?}  洞察: {}",
-            parsed.discovery_update.new_clusters,
+        println!("🆕 情境: {:?}  边: {:?}  洞察: {}",
+            parsed.discovery_update.new_situations,
             parsed.discovery_update.new_edge_ids,
             parsed.discovery_update.new_insights.len());
     }

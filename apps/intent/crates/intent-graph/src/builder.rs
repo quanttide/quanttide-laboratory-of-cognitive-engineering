@@ -31,19 +31,19 @@ fn parse_relation_type(raw: &str) -> String {
     }
 }
 
-fn match_cluster_id(clusters: &[Cluster], reference: &str) -> Option<u32> {
+fn match_situation_id(situations: &[Situation], reference: &str) -> Option<u32> {
     let ref_lower = reference.to_lowercase();
 
-    for cluster in clusters {
-        if cluster.name.to_lowercase().contains(&ref_lower) {
-            return Some(cluster.id);
+    for s in situations {
+        if s.title.to_lowercase().contains(&ref_lower) {
+            return Some(s.id);
         }
     }
 
-    for cluster in clusters {
-        if let Some(ref evo) = cluster.evolution {
+    for s in situations {
+        if let Some(ref evo) = s.evolution {
             if evo.to_lowercase().contains(&ref_lower) {
-                return Some(cluster.id);
+                return Some(s.id);
             }
         }
     }
@@ -53,19 +53,19 @@ fn match_cluster_id(clusters: &[Cluster], reference: &str) -> Option<u32> {
         .filter(|w| w.len() >= 2)
         .map(|w| w.to_string())
         .collect();
-    for cluster in clusters {
-        let name_lower = cluster.name.to_lowercase();
+    for s in situations {
+        let title_lower = s.title.to_lowercase();
         for word in &words {
-            if word.len() >= 3 && name_lower.contains(word.as_str()) {
-                return Some(cluster.id);
+            if word.len() >= 3 && title_lower.contains(word.as_str()) {
+                return Some(s.id);
             }
         }
     }
-    for cluster in clusters {
-        let name_lower = cluster.name.to_lowercase();
+    for s in situations {
+        let title_lower = s.title.to_lowercase();
         for word in &words {
-            if word.len() >= 2 && name_lower.contains(word.as_str()) {
-                return Some(cluster.id);
+            if word.len() >= 2 && title_lower.contains(word.as_str()) {
+                return Some(s.id);
             }
         }
     }
@@ -78,9 +78,9 @@ fn match_cluster_id(clusters: &[Cluster], reference: &str) -> Option<u32> {
         .filter(|b| b.chars().all(|c| c.is_alphanumeric()))
         .collect();
     let mut best: Option<(u32, f64)> = None;
-    for cluster in clusters {
-        let name_lower = cluster.name.to_lowercase();
-        let name_bigrams: std::collections::HashSet<String> = name_lower
+    for s in situations {
+        let title_lower = s.title.to_lowercase();
+        let name_bigrams: std::collections::HashSet<String> = title_lower
             .chars()
             .collect::<Vec<char>>()
             .windows(2)
@@ -93,7 +93,7 @@ fn match_cluster_id(clusters: &[Cluster], reference: &str) -> Option<u32> {
         let intersection = ref_bigrams.intersection(&name_bigrams).count();
         let recall = intersection as f64 / ref_bigrams.len() as f64;
         if recall >= 0.3 && best.map_or(true, |(_, b)| recall > b) {
-            best = Some((cluster.id, recall));
+            best = Some((s.id, recall));
         }
     }
     best.map(|(id, _)| id)
@@ -110,19 +110,25 @@ impl GraphBuilder {
 
         let intent_content = fs::read_to_string(intent_path)?;
         let intent_yaml: IntentYaml = serde_yaml::from_str(&intent_content)?;
-        let clusters = intent_yaml.clusters;
+        let situations = intent_yaml.situations;
 
-        for cluster in &clusters {
-            let per_week_intents: Vec<String> = cluster
-                .per_week
-                .values()
-                .flat_map(|v| v.clone())
-                .collect();
+        for s in &situations {
+            let mut per_week_intents: Vec<PerWeek> = Vec::new();
+            let mut weeks: Vec<&str> = s.per_week.keys().map(|s| s.as_str()).collect();
+            weeks.sort();
+            for week in weeks {
+                if let Some(intents) = s.per_week.get(week) {
+                    per_week_intents.push(PerWeek {
+                        week: week.to_string(),
+                        intents: intents.clone(),
+                    });
+                }
+            }
             let node = NodeWeight {
-                id: cluster.id,
-                name: cluster.name.clone(),
-                r#type: cluster.cluster_type.clone().unwrap_or_default(),
-                evolution: cluster.evolution.clone().unwrap_or_default(),
+                id: s.id,
+                title: s.title.clone(),
+                r#type: s.situation_type.clone().unwrap_or_default(),
+                evolution: s.evolution.clone().unwrap_or_default(),
                 per_week_intents,
             };
             ig.add_node(node);
@@ -132,10 +138,10 @@ impl GraphBuilder {
         let relation_yaml: RelationYaml = serde_yaml::from_str(&relation_content)?;
 
         for entry in &relation_yaml.stable_relations {
-            Self::add_edge_entry(&mut ig, entry, "stable", &clusters);
+            Self::add_edge_entry(&mut ig, entry, "stable", &situations);
         }
         for entry in &relation_yaml.periodic_tensions {
-            Self::add_edge_entry(&mut ig, entry, "periodic", &clusters);
+            Self::add_edge_entry(&mut ig, entry, "periodic", &situations);
         }
         for entry in &relation_yaml.situational_relations {
             Self::add_edge_entry(
@@ -147,7 +153,7 @@ impl GraphBuilder {
                     logic: String::new(),
                 },
                 "situational",
-                &clusters,
+                &situations,
             );
         }
 
@@ -158,14 +164,14 @@ impl GraphBuilder {
         ig: &mut super::graph::IntentGraph,
         entry: &RelationEntry,
         period_type: &str,
-        clusters: &[Cluster],
+        situations: &[Situation],
     ) {
         let (source_ref, target_ref, bidirectional) = parse_relation_name(&entry.name);
         if source_ref.is_empty() {
             return;
         }
-        let source_id = match_cluster_id(clusters, &source_ref);
-        let target_id = match_cluster_id(clusters, &target_ref);
+        let source_id = match_situation_id(situations, &source_ref);
+        let target_id = match_situation_id(situations, &target_ref);
         if let (Some(sid), Some(tid)) = (source_id, target_id) {
             let rel_type = parse_relation_type(&entry.relation_type);
             let weight = EdgeWeight {
@@ -187,14 +193,14 @@ impl GraphBuilder {
         }
     }
 
-    pub fn build_keyword_table(clusters: &[Cluster]) -> KeywordTable {
-        clusters
+    pub fn build_keyword_table(situations: &[Situation]) -> KeywordTable {
+        situations
             .iter()
-            .map(|cluster| {
+            .map(|s| {
                 let mut all_words: Vec<String> = Vec::new();
-                let name_tokens = tokenizer::tokenize(&cluster.name);
+                let name_tokens = tokenizer::tokenize(&s.title);
                 all_words.extend(name_tokens);
-                for (_, intents) in &cluster.per_week {
+                for (_, intents) in &s.per_week {
                     for intent in intents {
                         let tokens = tokenizer::tokenize(intent);
                         all_words.extend(tokens);
@@ -203,8 +209,8 @@ impl GraphBuilder {
                 all_words.sort();
                 all_words.dedup();
                 KeywordEntry {
-                    id: cluster.id,
-                    name: cluster.name.clone(),
+                    id: s.id,
+                    title: s.title.clone(),
                     keywords: all_words,
                 }
             })
@@ -216,7 +222,7 @@ impl GraphBuilder {
     ) -> Result<KeywordTable, Box<dyn std::error::Error>> {
         let content = fs::read_to_string(intent_path)?;
         let yaml: IntentYaml = serde_yaml::from_str(&content)?;
-        Ok(Self::build_keyword_table(&yaml.clusters))
+        Ok(Self::build_keyword_table(&yaml.situations))
     }
 
     pub fn save_keyword_table(

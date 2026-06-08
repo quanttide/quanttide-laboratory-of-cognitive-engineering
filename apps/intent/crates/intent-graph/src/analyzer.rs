@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::tokenizer;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClusterEntry {
+pub struct SituationEntry {
     pub id: u32,
-    pub name: String,
+    pub title: String,
     pub keywords: Vec<String>,
 }
 
@@ -18,8 +18,8 @@ pub struct Cooccurrence {
     pub quote: String,
 }
 
-pub struct ClusterKeywordIndex {
-    pub clusters: Vec<ClusterEntry>,
+pub struct SituationIndex {
+    pub situations: Vec<SituationEntry>,
 }
 
 const STOPWORDS: &[&str] = &[
@@ -34,21 +34,21 @@ fn is_stopword(s: &str) -> bool {
     STOPWORDS.contains(&s)
 }
 
-impl ClusterKeywordIndex {
+impl SituationIndex {
     pub fn from_yaml(path: &str) -> Result<Self, String> {
         let content =
             fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path, e))?;
         let yaml: serde_yaml::Value =
             serde_yaml::from_str(&content).map_err(|e| format!("Failed to parse YAML: {}", e))?;
 
-        let mut clusters = Vec::new();
-        if let Some(arr) = yaml["clusters"].as_sequence() {
+        let mut situations = Vec::new();
+        if let Some(arr) = yaml["situations"].as_sequence() {
             for item in arr {
                 let id = item["id"].as_u64().unwrap_or(0) as u32;
-                let name = item["name"].as_str().unwrap_or("").to_string();
+                let title = item["title"].as_str().unwrap_or("").to_string();
                 let mut keywords: Vec<String> = Vec::new();
 
-                for t in tokenizer::tokenize(&name) {
+                for t in tokenizer::tokenize(&title) {
                     if !is_stopword(&t) {
                         keywords.push(t);
                     }
@@ -78,18 +78,18 @@ impl ClusterKeywordIndex {
 
                 keywords.sort();
                 keywords.dedup();
-                clusters.push(ClusterEntry { id, name, keywords });
+                situations.push(SituationEntry { id, title, keywords });
             }
         }
-        Ok(ClusterKeywordIndex { clusters })
+        Ok(SituationIndex { situations })
     }
 
-    pub fn get(&self, id: u32) -> Option<&ClusterEntry> {
-        self.clusters.iter().find(|c| c.id == id)
+    pub fn get(&self, id: u32) -> Option<&SituationEntry> {
+        self.situations.iter().find(|c| c.id == id)
     }
 
-    pub fn overlap(&self, text: &str, cluster_id: u32) -> f64 {
-        let entry = match self.clusters.iter().find(|c| c.id == cluster_id) {
+    pub fn overlap(&self, text: &str, situation_id: u32) -> f64 {
+        let entry = match self.situations.iter().find(|c| c.id == situation_id) {
             Some(e) => e,
             None => return 0.0,
         };
@@ -108,8 +108,8 @@ impl ClusterKeywordIndex {
     pub fn find_cooccurrences(
         &self,
         files: &[String],
-        cluster_a: u32,
-        cluster_b: u32,
+        situation_a: u32,
+        situation_b: u32,
         threshold: f64,
     ) -> Vec<Cooccurrence> {
         let mut results = Vec::new();
@@ -123,8 +123,8 @@ impl ClusterKeywordIndex {
             } else {
                 &content
             };
-            let score_a = self.overlap(body, cluster_a);
-            let score_b = self.overlap(body, cluster_b);
+            let score_a = self.overlap(body, situation_a);
+            let score_b = self.overlap(body, situation_b);
             if score_a > threshold && score_b > threshold {
                 let week = file_path
                     .split('/')
