@@ -8,6 +8,12 @@
 2. **仅依赖图谱**：LLM 只能看到意图图里的节点和边，看不到原始日志中的鲜活表达和语境
 3. **LLM 自身知识未利用**：图结构限制 LLM 只能用已建模的关系，无法引入外部类比、跨领域知识
 
+## 数据隔离规则
+
+- **只读**：从 `../../data/` 读入（intent-graph.json, raw/ 日志）
+- **本地**：所有衍生数据和输出写入 `data/`（extracts.json, sessions/）
+- **不修改**根目录 `data/` 下的任何文件
+
 ## 设计
 
 ### 三项核心变更
@@ -36,7 +42,7 @@ fn cold_inject(&self, matched_ids: &[u32], state: &DiscoveryState) -> Option<u32
 
 ### B. 日志亮点回溯
 
-提前从 `data/raw/` 中为每个簇提取 1-2 条代表性原始语句（最接近该簇核心关切的原文）。存储为 `data/formal/extracts.json`：
+从 `../../data/raw/` 扫描每个簇的原始日志（只读），提取 1-2 条代表性语句。存储为项目本地文件 `data/extracts.json`：
 
 ```json
 [
@@ -81,10 +87,9 @@ LLM 输出新增第 5 个字段：
 
 ## 输入
 
-- `data/formal/intent-graph.json`
-- `data/formal/extracts.json`（新增）
-- 用户入口想法（与 09 相同种子）
+- `../../data/formal/intent-graph.json`（只读）
+- `data/extracts.json`（项目本地，由实验生成）
 
 ## 输出
 
-- `data/formal/sessions/session_p10.json`
+- `data/sessions/session_p10.json`（项目本地）
