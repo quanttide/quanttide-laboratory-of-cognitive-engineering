@@ -48,8 +48,8 @@ path = "src/bin/exp_feedback.rs"
 
 ### 输入
 
-- 关键词表：从 `../../assets/refined/intent.yaml` 的 per_week 表述构建（当前策略）
-- 测试集：从 `../../assets/raw/` 选取 N 段文本，每段有人工标注的所属簇
+- 关键词表：从 `../../data/refined/intent.yaml` 的 per_week 表述构建（当前策略）
+- 测试集：从 `../../data/raw/` 选取 N 段文本，每段有人工标注的所属簇
 - 对比扩展版关键词表：从原始日志文本本身提取同义关键词补充
 
 ### 方法
@@ -82,7 +82,7 @@ path = "src/bin/exp_feedback.rs"
 
 ### 输入
 
-- 图谱：从 `../../assets/refined/intent.yaml` + `intent-relation.yaml` 构建
+- 图谱：从 `../../data/refined/intent.yaml` + `intent-relation.yaml` 构建
 - 测试用例：人工构造的簇对输入（跳过匹配阶段），每对标注了预期关系
 
 ### 测试用例示例

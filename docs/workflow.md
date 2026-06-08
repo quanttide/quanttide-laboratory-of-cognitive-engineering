@@ -8,7 +8,7 @@
 
 基于最近一周（2026-06-01 至 2026-06-07）的默认日志，按话题进行归类整理。
 
-**输入**：`assets/founder-journal/2026-06-01.md` ~ `2026-06-07.md`（7 篇）
+**输入**：`data/founder-journal/2026-06-01.md` ~ `2026-06-07.md`（7 篇）
 
 **方法**：
 1. 逐日阅读每篇日志，以自然段落为单位提取话题片段
@@ -116,4 +116,4 @@ graph LR
 2. 将每个 Intent 的表述直接展开为完整的 Thought 描述
 3. 不添加、不组合、不分层——Intent 即 Thought
 
-**输出**：`assets/refined/thoughts.md`（已执行），13 个 Thought
+**输出**：`data/refined/thoughts.md`（已执行），13 个 Thought
