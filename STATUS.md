@@ -42,7 +42,7 @@ data/raw/ → data/cleaned/ → data/refined/ → data/formal/ → ? (叙事?)
 
 ```
 apps/intent/          → CLI：qtcloud-think-intent（多轮 GraphRAG scaffold）
-packages/rust/        → 库：intent-llm（DeepSeek 客户端），intent-graph（图分析）
+apps/intent/crates/   → 库：intent-llm（DeepSeek 客户端），intent-graph（图分析）
 ```
 
 ## 核心差距

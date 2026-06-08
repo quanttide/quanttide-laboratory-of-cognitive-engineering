@@ -36,8 +36,8 @@ project-XX/
 | 目标 | 说明 |
 |------|------|
 | `apps/intent/` | `qtcloud-think-intent` CLI 工具（多轮 GraphRAG scaffold） |
-| `packages/rust/intent-llm/` | DeepSeek 客户端 + JSON 解析 |
-| `packages/rust/intent-graph/` | 图分析（BFS、关键词索引、共现扫描） |
+| `apps/intent/crates/intent-llm/` | DeepSeek 客户端 + JSON 解析 |
+| `apps/intent/crates/intent-graph/` | 图分析（BFS、关键词索引、共现扫描） |
 | `data/formal/intent-graph.json` | 权威意图关系图（v0.3.0, 19 边） |
 
 ## 方法论原则
