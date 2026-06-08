@@ -1,0 +1,289 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "name": "研发方法论与工具链",
+      "type": "持续关切",
+      "evolution": "涌现哲学 → 重构循环 → CLI 工具链 → POC 标准化 → POC 范式 + 低耗能模式",
+      "per_week_intents": [
+        "建立以重构为中心的研发体系",
+        "建立以涌现为核心的快速研发方法论",
+        "搭建多语言自动化研发工具链",
+        "确立生产级研发的新范式",
+        "加速研发迭代与平台化",
+        "建立以 POC 为核心的快速探索范式",
+        "利用低耗能模式维持产出"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "心理可持续性与创造状态管理",
+      "type": "持续关切",
+      "evolution": "觉察压力 → 调节工具 → 发现\"滑翔\"状态 → 制度对冲 → 低耗能模式正式化",
+      "per_week_intents": [
+        "调节工作节奏与维护心理可持续性",
+        "管理认知负荷与维持可持续节奏",
+        "理解并管理创造状态的频谱",
+        "在高压探索中维护心理可持续性",
+        "维护心理稳态与情绪调节"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "认知工程与意图工程方法论",
+      "type": "主干议题",
+      "evolution": "二阶控制论 → System Two/One 外化系统 → 范畴论→代码技术路径 → 意图工程命名 + 辩论模型",
+      "per_week_intents": [
+        "构建可执行的认知工程框架",
+        "将意图工程作为认知工程的核心方法论",
+        "建立人机协同的反思与辩论模型",
+        "建立以二阶控制论为框架的认知工程方法论",
+        "外化认知系统并实现自主演化"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "AI 协作范式与人机分工",
+      "type": "主干议题",
+      "evolution": "「每人配一个秘书」→ 双引擎架构(Opencode+Zed) → 人类立宪+AI 立法 → 可编辑阅读器交互范式",
+      "per_week_intents": [
+        "深化 AI 协作模式",
+        "确立以人为中心的 AI 协作范式",
+        "设计人机协同的权责体系与组织架构",
+        "设计适应 AI 协作的交互范式"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "商业模式与商业增长",
+      "type": "主干议题",
+      "evolution": "大单转型 → 商业压力=产品需求 → 大客户验证 + 取舍哲学 → 多元化业务矩阵",
+      "per_week_intents": [
+        "实现可持续的商业增长与团队建设",
+        "实现商业验证与收入增长",
+        "探索可持续的新商业模式",
+        "实现从项目驱动到大单驱动的商业模式转型"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "平台架构与基础设施",
+      "type": "主干议题",
+      "evolution": "可观测性+枢纽定位 → 自我标准化 → 基础设施务实落地",
+      "per_week_intents": [
+        "构建安全可靠的平台基础设施",
+        "理清工具链的归属与分工",
+        "构建标准化平台架构",
+        "构建以可观测性为核心的多平台体系",
+        "明确管理后台作为系统枢纽的定位"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "标准化与治理体系",
+      "type": "主干议题",
+      "evolution": "补短板 → 自研 toolkit-as-contract → 元职能标准化",
+      "per_week_intents": [
+        "建立标准化与信息结构的治理体系",
+        "从实际问题蒸馏数据标准化体系",
+        "确立标准化与元智能的治理体系"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "团队建设与组织文化转型",
+      "type": "主干议题",
+      "evolution": "商业增长的子问题 → 人事云系统 → 财务离职触发反脆弱+文化转型",
+      "per_week_intents": [
+        "实现可持续的商业增长与团队建设",
+        "搭建高效团队与招聘体系",
+        "建立反脆弱的团队运作机制",
+        "实现从人治到法治的文化转型"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "内容创作与叙事工程",
+      "type": "主干议题",
+      "evolution": "小说作为表达出口 → 工作与小说的认知接口 → 写作云产品框架",
+      "per_week_intents": [
+        "探索与建立个人化的表达方式",
+        "通过虚构创作探索认知接口",
+        "打磨写作云与叙事工程框架"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "知识工程与隐性经验显性化",
+      "type": "单周验证",
+      "evolution": "W21 验证核心假设后转入常规研发",
+      "per_week_intents": [
+        "构建隐性经验显性化的知识工程流水线"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": 2,
+      "target": 1,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "心理状态是研发执行力的先决条件",
+        "weeks": [
+          "W19",
+          "W20",
+          "W21",
+          "W22",
+          "W23"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 3,
+      "target": 1,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "认知/意图框架为研发提供方向和收敛依据",
+        "weeks": [
+          "W19",
+          "W21",
+          "W22",
+          "W23"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 7,
+      "target": 6,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "标准化是平台和工具链可维护性的前提",
+        "weeks": [
+          "W19",
+          "W21",
+          "W23"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 3,
+      "target": 4,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "认知方法论指导 AI 协作，AI 协作反哺认知工程",
+        "weeks": [
+          "W19",
+          "W21",
+          "W23"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 4,
+      "target": 3,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "认知方法论指导 AI 协作，AI 协作反哺认知工程",
+        "weeks": [
+          "W19",
+          "W21",
+          "W23"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 5,
+      "target": 2,
+      "weight": {
+        "relation_type": "冲突",
+        "logic": "商业高压与心理可持续存在内在矛盾",
+        "weeks": [
+          "W19",
+          "W20",
+          "W22"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 2,
+      "target": 5,
+      "weight": {
+        "relation_type": "冲突",
+        "logic": "商业高压与心理可持续存在内在矛盾",
+        "weeks": [
+          "W19",
+          "W20",
+          "W22"
+        ],
+        "period_type": "stable"
+      }
+    },
+    {
+      "source": 8,
+      "target": 8,
+      "weight": {
+        "relation_type": "冲突",
+        "logic": "",
+        "weeks": [
+          "W23"
+        ],
+        "period_type": "situational"
+      }
+    },
+    {
+      "source": 8,
+      "target": 8,
+      "weight": {
+        "relation_type": "冲突",
+        "logic": "",
+        "weeks": [
+          "W23"
+        ],
+        "period_type": "situational"
+      }
+    },
+    {
+      "source": 9,
+      "target": 5,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "",
+        "weeks": [
+          "W20",
+          "W23"
+        ],
+        "period_type": "situational"
+      }
+    },
+    {
+      "source": 8,
+      "target": 1,
+      "weight": {
+        "relation_type": "支持",
+        "logic": "",
+        "weeks": [
+          "W22"
+        ],
+        "period_type": "situational"
+      }
+    },
+    {
+      "source": 9,
+      "target": 2,
+      "weight": {
+        "relation_type": "情感补给",
+        "logic": "",
+        "weeks": [
+          "W21"
+        ],
+        "period_type": "situational"
+      }
+    }
+  ]
+}
