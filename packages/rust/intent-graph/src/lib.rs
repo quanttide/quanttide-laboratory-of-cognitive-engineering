@@ -1,4 +1,4 @@
-mod builder;
+pub mod builder;
 pub mod graph;
 pub mod models;
 pub mod tokenizer;

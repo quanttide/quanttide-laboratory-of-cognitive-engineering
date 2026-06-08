@@ -140,19 +140,37 @@ impl IntentGraph {
             if path.len() >= max_depth {
                 continue;
             }
+            let visited: std::collections::HashSet<NodeIndex> =
+                path.iter().filter_map(|s| self.node_index_by_id.get(&s.to)).copied().collect();
             for e in self.graph.edges(current) {
                 let next = e.target();
-                if next == current {
+                if visited.contains(&next) {
                     continue;
                 }
-                let weight = e.weight();
                 let from_id = self.get_node_id(current).unwrap_or(0);
                 let to_id = self.get_node_id(next).unwrap_or(0);
                 let mut new_path = path.clone();
                 new_path.push(PathStep {
                     from: from_id,
                     to: to_id,
-                    relation: weight.relation_type.clone(),
+                    relation: e.weight().relation_type.clone(),
+                });
+                all_paths.push(new_path.clone());
+                queue.push_back((next, new_path));
+            }
+            for e in self.graph.edges_directed(current, petgraph::Direction::Incoming) {
+                let next = e.source();
+                if visited.contains(&next) {
+                    continue;
+                }
+                // Traverse incoming edge backward: source->current becomes current->source
+                let from_id = self.get_node_id(current).unwrap_or(0);
+                let to_id = self.get_node_id(next).unwrap_or(0);
+                let mut new_path = path.clone();
+                new_path.push(PathStep {
+                    from: from_id,
+                    to: to_id,
+                    relation: e.weight().relation_type.clone(),
                 });
                 all_paths.push(new_path.clone());
                 queue.push_back((next, new_path));

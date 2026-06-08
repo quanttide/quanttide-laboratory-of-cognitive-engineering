@@ -163,6 +163,30 @@ path = "src/bin/exp_feedback.rs"
 
 ---
 
+## 任务 6.4：综合报告
+
+**问题**：如何将三组实验输出汇总为结构化摘要，辅助思考者理解自身意图模式？
+
+### 输入
+
+- `data/output/match-result.json`
+- `data/output/reason-result.json`
+- `data/output/feedback-result.json`
+
+### 方法
+
+1. 读取三组实验的输出 JSON
+2. 统计匹配层的 best/worst 簇、推理层的枢纽/孤立簇、反馈层的 gap 趋势
+3. 生成结构化摘要（`experiment-summary.json`）
+4. LLM 分析生成意图分析报告（`intent-analysis.md`）
+
+### 输出
+
+`data/report/experiment-summary.json`：结构化汇总
+`data/report/intent-analysis.md`：LLM 生成的意图分析
+
+---
+
 ## 项目列表
 
 | 任务 | binary | 解决的问题 |
@@ -170,3 +194,4 @@ path = "src/bin/exp_feedback.rs"
 | 6.1 匹配验证 | `exp_match` | 关键词匹配到底能多准？改进空间在哪？ |
 | 6.2 推理验证 | `exp_reason` | 给定正确簇，图能找到多少有意义的关系？ |
 | 6.3 反馈验证 | `exp_feedback` | 图每周更新后会不会越来越好？ |
+| 6.4 综合报告 | `exp_report` | 三组实验数据汇总为结构化摘要 |

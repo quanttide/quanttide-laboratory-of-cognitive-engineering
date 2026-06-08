@@ -1,0 +1,626 @@
+{
+  "total_segments": 25,
+  "top1_recall": 0.52,
+  "top3_recall": 0.84,
+  "any_recall": 0.96,
+  "per_cluster": [
+    {
+      "cluster": 1,
+      "name": "研发方法论与工具链",
+      "total": 2,
+      "top1_hits": 1,
+      "top3_hits": 2,
+      "recall_top1": 0.5,
+      "recall_top3": 1.0
+    },
+    {
+      "cluster": 2,
+      "name": "心理可持续性与创造状态管理",
+      "total": 4,
+      "top1_hits": 2,
+      "top3_hits": 3,
+      "recall_top1": 0.5,
+      "recall_top3": 0.75
+    },
+    {
+      "cluster": 3,
+      "name": "认知工程与意图工程方法论",
+      "total": 3,
+      "top1_hits": 2,
+      "top3_hits": 3,
+      "recall_top1": 0.6666666666666666,
+      "recall_top3": 1.0
+    },
+    {
+      "cluster": 4,
+      "name": "AI 协作范式与人机分工",
+      "total": 4,
+      "top1_hits": 3,
+      "top3_hits": 3,
+      "recall_top1": 0.75,
+      "recall_top3": 0.75
+    },
+    {
+      "cluster": 5,
+      "name": "商业模式与商业增长",
+      "total": 2,
+      "top1_hits": 0,
+      "top3_hits": 1,
+      "recall_top1": 0.0,
+      "recall_top3": 0.5
+    },
+    {
+      "cluster": 6,
+      "name": "平台架构与基础设施",
+      "total": 2,
+      "top1_hits": 1,
+      "top3_hits": 2,
+      "recall_top1": 0.5,
+      "recall_top3": 1.0
+    },
+    {
+      "cluster": 7,
+      "name": "标准化与治理体系",
+      "total": 2,
+      "top1_hits": 1,
+      "top3_hits": 2,
+      "recall_top1": 0.5,
+      "recall_top3": 1.0
+    },
+    {
+      "cluster": 8,
+      "name": "团队建设与组织文化转型",
+      "total": 2,
+      "top1_hits": 1,
+      "top3_hits": 1,
+      "recall_top1": 0.5,
+      "recall_top3": 0.5
+    },
+    {
+      "cluster": 9,
+      "name": "内容创作与叙事工程",
+      "total": 3,
+      "top1_hits": 1,
+      "top3_hits": 3,
+      "recall_top1": 0.3333333333333333,
+      "recall_top3": 1.0
+    },
+    {
+      "cluster": 10,
+      "name": "知识工程与隐性经验显性化",
+      "total": 1,
+      "top1_hits": 1,
+      "top3_hits": 1,
+      "recall_top1": 1.0,
+      "recall_top3": 1.0
+    }
+  ],
+  "results": [
+    {
+      "id": "T1",
+      "week": "2026-W19",
+      "expected": [
+        1
+      ],
+      "matched_ids": [
+        9,
+        1,
+        3,
+        6,
+        4,
+        7,
+        2
+      ],
+      "matched_rank_of_expected": {
+        "1": 1
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T2",
+      "week": "2026-W19",
+      "expected": [
+        2
+      ],
+      "matched_ids": [
+        3,
+        9,
+        2,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "2": 2
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T3",
+      "week": "2026-W20",
+      "expected": [
+        6
+      ],
+      "matched_ids": [
+        7,
+        6,
+        3,
+        9,
+        1,
+        2,
+        4,
+        8
+      ],
+      "matched_rank_of_expected": {
+        "6": 1
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T4",
+      "week": "2026-W20",
+      "expected": [
+        9
+      ],
+      "matched_ids": [
+        9,
+        4,
+        2,
+        3,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "9": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T5",
+      "week": "2026-W21",
+      "expected": [
+        10
+      ],
+      "matched_ids": [
+        10,
+        7,
+        9,
+        6,
+        3,
+        1,
+        4
+      ],
+      "matched_rank_of_expected": {
+        "10": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T6",
+      "week": "2026-W21",
+      "expected": [
+        4
+      ],
+      "matched_ids": [
+        4,
+        10,
+        7,
+        3,
+        9,
+        2,
+        6
+      ],
+      "matched_rank_of_expected": {
+        "4": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T7",
+      "week": "2026-W22",
+      "expected": [
+        5
+      ],
+      "matched_ids": [
+        1,
+        6,
+        3,
+        4,
+        7,
+        2,
+        8
+      ],
+      "matched_rank_of_expected": {
+        "5": null
+      },
+      "hit_top1": false,
+      "hit_top3": false,
+      "hit_any": false
+    },
+    {
+      "id": "T8",
+      "week": "2026-W22",
+      "expected": [
+        3
+      ],
+      "matched_ids": [
+        6,
+        3,
+        1,
+        4,
+        7,
+        2
+      ],
+      "matched_rank_of_expected": {
+        "3": 1
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T9",
+      "week": "2026-W23",
+      "expected": [
+        8
+      ],
+      "matched_ids": [
+        8,
+        2,
+        5,
+        3,
+        6,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "8": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T10",
+      "week": "2026-W23",
+      "expected": [
+        9
+      ],
+      "matched_ids": [
+        10,
+        3,
+        9,
+        1,
+        4,
+        5
+      ],
+      "matched_rank_of_expected": {
+        "9": 2
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T11",
+      "week": "2026-W19",
+      "expected": [
+        6
+      ],
+      "matched_ids": [
+        6,
+        9,
+        3,
+        2,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "6": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T12",
+      "week": "2026-W19",
+      "expected": [
+        4
+      ],
+      "matched_ids": [
+        4,
+        7,
+        9,
+        2,
+        6,
+        8,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "4": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T13",
+      "week": "2026-W19",
+      "expected": [
+        7
+      ],
+      "matched_ids": [
+        10,
+        6,
+        7,
+        3,
+        9,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "7": 2
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T14",
+      "week": "2026-W19",
+      "expected": [
+        3
+      ],
+      "matched_ids": [
+        3,
+        2,
+        6,
+        4,
+        5,
+        7,
+        9,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "3": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T15",
+      "week": "2026-W19",
+      "expected": [
+        5
+      ],
+      "matched_ids": [
+        8,
+        5,
+        9,
+        1,
+        4,
+        7,
+        2,
+        3,
+        6
+      ],
+      "matched_rank_of_expected": {
+        "5": 1
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T16",
+      "week": "2026-W20",
+      "expected": [
+        4
+      ],
+      "matched_ids": [
+        10,
+        9,
+        3,
+        6,
+        1,
+        4,
+        7,
+        2,
+        8
+      ],
+      "matched_rank_of_expected": {
+        "4": 5
+      },
+      "hit_top1": false,
+      "hit_top3": false,
+      "hit_any": true
+    },
+    {
+      "id": "T17",
+      "week": "2026-W20",
+      "expected": [
+        8
+      ],
+      "matched_ids": [
+        4,
+        3,
+        6,
+        7,
+        8,
+        1,
+        9
+      ],
+      "matched_rank_of_expected": {
+        "8": 4
+      },
+      "hit_top1": false,
+      "hit_top3": false,
+      "hit_any": true
+    },
+    {
+      "id": "T18",
+      "week": "2026-W20",
+      "expected": [
+        2
+      ],
+      "matched_ids": [
+        2,
+        5,
+        1
+      ],
+      "matched_rank_of_expected": {
+        "2": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T19",
+      "week": "2026-W21",
+      "expected": [
+        3
+      ],
+      "matched_ids": [
+        3,
+        2,
+        6,
+        1,
+        4,
+        9
+      ],
+      "matched_rank_of_expected": {
+        "3": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T20",
+      "week": "2026-W21",
+      "expected": [
+        2
+      ],
+      "matched_ids": [
+        2,
+        7
+      ],
+      "matched_rank_of_expected": {
+        "2": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T21",
+      "week": "2026-W21",
+      "expected": [
+        9
+      ],
+      "matched_ids": [
+        10,
+        2,
+        9,
+        3,
+        6
+      ],
+      "matched_rank_of_expected": {
+        "9": 2
+      },
+      "hit_top1": false,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T22",
+      "week": "2026-W22",
+      "expected": [
+        2
+      ],
+      "matched_ids": [
+        4,
+        5,
+        7,
+        1,
+        6,
+        9,
+        2
+      ],
+      "matched_rank_of_expected": {
+        "2": 6
+      },
+      "hit_top1": false,
+      "hit_top3": false,
+      "hit_any": true
+    },
+    {
+      "id": "T23",
+      "week": "2026-W23",
+      "expected": [
+        4
+      ],
+      "matched_ids": [
+        4,
+        9
+      ],
+      "matched_rank_of_expected": {
+        "4": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T24",
+      "week": "2026-W23",
+      "expected": [
+        7
+      ],
+      "matched_ids": [
+        7,
+        6,
+        1,
+        4,
+        2,
+        8
+      ],
+      "matched_rank_of_expected": {
+        "7": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    },
+    {
+      "id": "T25",
+      "week": "2026-W23",
+      "expected": [
+        1
+      ],
+      "matched_ids": [
+        1,
+        4,
+        2,
+        5,
+        3,
+        6
+      ],
+      "matched_rank_of_expected": {
+        "1": 0
+      },
+      "hit_top1": true,
+      "hit_top3": true,
+      "hit_any": true
+    }
+  ]
+}
