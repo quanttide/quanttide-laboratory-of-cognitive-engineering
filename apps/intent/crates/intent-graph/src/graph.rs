@@ -344,6 +344,10 @@ impl IntentGraph {
     pub fn load_json(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let content = fs::read_to_string(path)?;
         let data: GraphData = serde_json::from_str(&content)?;
+        Ok(Self::from_data(data))
+    }
+
+    pub fn from_data(data: GraphData) -> Self {
         let mut ig = IntentGraph::new();
         for node in &data.nodes {
             let idx = ig.graph.add_node(node.clone());
@@ -356,7 +360,7 @@ impl IntentGraph {
                 ig.graph.add_edge(si, ti, edge.weight.clone());
             }
         }
-        Ok(ig)
+        ig
     }
 
     fn get_node_id(&self, idx: NodeIndex) -> Option<u32> {

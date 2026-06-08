@@ -3,7 +3,7 @@ pub mod summary;
 
 use std::fs;
 
-use intent_graph::{KeywordTable, NodeWeight, PerWeek};
+use intent_graph::{IntentGraph, KeywordTable, NodeWeight};
 use intent_llm::{extract_json, DeepSeekClient};
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct ScaffoldData {
-    #[serde(rename = "cluster_descriptions")]
     situations: Vec<NodeWeight>,
     #[serde(rename = "keyword_index")]
     keyword_index: KeywordTable,
@@ -140,6 +139,7 @@ pub struct SessionFile {
 // --- ScaffoldEngine ---
 
 pub struct ScaffoldEngine {
+    graph: IntentGraph,
     data: ScaffoldData,
     client: DeepSeekClient,
 }
@@ -147,9 +147,13 @@ pub struct ScaffoldEngine {
 impl ScaffoldEngine {
     pub fn new(graph_path: &str) -> Result<Self, String> {
         let content = fs::read_to_string(graph_path).map_err(|e| format!("IO: {}", e))?;
-        let data: ScaffoldData = serde_json::from_str(&content).map_err(|e| format!("JSON: {}", e))?;
+        let v: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("JSON: {}", e))?;
+        let data: ScaffoldData = serde_json::from_value(v.clone()).map_err(|e| format!("ScaffoldData: {}", e))?;
+        let graph: IntentGraph = serde_json::from_value(v["graph"].clone())
+            .map_err(|e| format!("GraphData: {}", e))
+            .and_then(|gd: intent_graph::GraphData| Ok(IntentGraph::from_data(gd)))?;
         let client = DeepSeekClient::from_env()?;
-        Ok(Self { data, client })
+        Ok(Self { graph, data, client })
     }
 
     pub fn process_with_state(&self, input: &str, state: &DiscoveryState) -> Result<(ParsedResponse, String), String> {
@@ -160,15 +164,14 @@ impl ScaffoldEngine {
     }
 
     pub fn match_with_history(&self, text: &str, state: &DiscoveryState) -> Vec<SituationMatch> {
-        let tokens = bigrams(text);
-        let mut results: Vec<SituationMatch> = self.data.keyword_index.iter().map(|e| {
-            let common = e.keywords.iter().filter(|kw| tokens.contains(kw)).count();
-            let mut score = if e.keywords.is_empty() { 0.0 } else { common as f64 / e.keywords.len() as f64 };
-            if state.explored_situations.contains(&e.id) {
+        let matched = self.graph.match_nodes(&self.data.keyword_index, text, 0.02);
+        let mut results: Vec<SituationMatch> = matched.into_iter().map(|m| {
+            let mut score = m.score;
+            if state.explored_situations.contains(&m.id) {
                 score *= 1.5;
             }
-            SituationMatch { id: e.id, title: e.title.clone(), score }
-        }).filter(|m| m.score > 0.02).collect();
+            SituationMatch { id: m.id, title: m.title, score: (score * 100.0).round() / 100.0 }
+        }).collect();
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         results.truncate(4);
         results
@@ -356,10 +359,6 @@ fn extract_u32_array(val: &serde_json::Value) -> Vec<u32> {
 
 fn extract_string_array(val: &serde_json::Value) -> Vec<String> {
     val.as_array().map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default()
-}
-
-fn bigrams(text: &str) -> Vec<String> {
-    text.chars().collect::<Vec<_>>().windows(2).map(|w| w.iter().collect()).collect()
 }
 
 pub fn ts() -> String {
