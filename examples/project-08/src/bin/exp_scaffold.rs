@@ -304,7 +304,7 @@ fn save_turn(session_path: &str, turn: &Turn) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let data_path = "data/enriched/scaffold-data.json";
+    let data_path = "data/formal/scaffold-data.json";
     let sessions_dir = "examples/project-08/data/sessions";
 
     let data: ScaffoldData =
