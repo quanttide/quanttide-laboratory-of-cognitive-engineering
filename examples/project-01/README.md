@@ -105,23 +105,23 @@ graph LR
 | 支持 | {意图B} | 强 | {为什么A支持B} |
 | 冲突 | {意图C} | 中 | {A和C在什么方向上冲突} |
 ```
-### 1.4 从意图生成想法
+### 1.4 从 Intent 生成 Thought
 
-以 task 1.2 的 13 个意图为核心，从意图之间的关系中自然涌现出完整想法——不外加分层结构，让每个想法以意图为中心自组织。
+每个 Intent 直接作为 1 个 Thought，不做跨意图聚合。
 
-**输入**：`outputs/task-1.2-intent-identification.md`（13 个意图）+ `outputs/task-1.3-intent-relationship.md`（意图关系）
+**输入**：`outputs/task-1.2-intent-identification.md`（13 个 Intent）
 
 **方法**：
-1. 每个意图本身就是 1 个想法（thought），不做跨意图聚合
-2. 将每个意图的表述直接展开为完整的想法描述
-3. 不添加、不组合、不分层——意图即想法
+1. 每个 Intent 本身就是 1 个 Thought
+2. 将每个 Intent 的表述直接展开为完整的 Thought 描述
+3. 不添加、不组合、不分层——Intent 即 Thought
 
-**输出**：`outputs/task-1.4-ideas-from-intents.md`（已执行），每个想法按以下格式：
+**输出**：`outputs/task-1.4-ideas-from-intents.md`（已执行），每个 Thought 按以下格式：
 
 ```markdown
-## 想法 N：{意图名称}
+## Thought N：{Intent 名称}
 
-**中心意图**：{意图名称}
+**Intent**：{Intent 名称}
 
-**想法描述**：{意图展开为完整想法的描述}
+**Thought**：{Intent 展开为完整 Thought 的描述}
 ```
