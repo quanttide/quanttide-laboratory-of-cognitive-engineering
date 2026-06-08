@@ -6,16 +6,14 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use serde::{Deserialize, Serialize};
 
-use crate::intent::{IntentId, IntentStore};
-use crate::keyword::KeywordTable;
-use crate::relation::{self, EdgeWeight, RelationDefinition, RelationEntry};
-use crate::situation::{self as sit, GraphDefinition, NodeWeight, PeriodSlice};
+use crate::intent::{IntentId, Intent};
+use crate::situation::{self as sit, GraphDefinition, KeywordTable, NodeWeight, PeriodSlice};
 use crate::tokenizer;
 
 pub struct IntentGraph {
     graph: DiGraph<NodeWeight, EdgeWeight>,
     node_index_by_id: HashMap<u32, NodeIndex>,
-    pub store: IntentStore,
+    pub store: Intent,
 }
 
 impl IntentGraph {
@@ -23,7 +21,7 @@ impl IntentGraph {
         IntentGraph {
             graph: DiGraph::new(),
             node_index_by_id: HashMap::new(),
-            store: IntentStore::new(),
+            store: Intent::new(),
         }
     }
 
@@ -93,14 +91,14 @@ impl IntentGraph {
         period_type: &str,
         situations: &[sit::Situation],
     ) {
-        let (source_ref, target_ref, bidirectional) = relation::parse_name(&entry.name);
+        let (source_ref, target_ref, bidirectional) = parse_name(&entry.name);
         if source_ref.is_empty() {
             return;
         }
         let source_id = sit::match_situation_id(situations, &source_ref);
         let target_id = sit::match_situation_id(situations, &target_ref);
         if let (Some(sid), Some(tid)) = (source_id, target_id) {
-            let rel_type = relation::parse_type(&entry.relation_type);
+            let rel_type = parse_type(&entry.relation_type);
             let weight = EdgeWeight {
                 relation_type: rel_type.clone(),
                 logic: entry.logic.clone(),
@@ -447,7 +445,7 @@ impl IntentGraph {
 
     pub fn from_data(data: GraphData) -> Self {
         let mut ig = IntentGraph::new();
-        ig.store = IntentStore::from_vec(data.intents);
+        ig.store = Intent::from_vec(data.intents);
         for node in &data.nodes {
             let idx = ig.graph.add_node(node.clone());
             ig.node_index_by_id.insert(node.id, idx);
@@ -477,6 +475,68 @@ impl IntentGraph {
             }
         }
         false
+    }
+}
+
+// --- Relation types (edge definitions) ---
+
+#[derive(Debug, Deserialize)]
+pub struct RelationDefinition {
+    pub stable_relations: Vec<RelationEntry>,
+    pub periodic_tensions: Vec<RelationEntry>,
+    pub situational_relations: Vec<SituationalRelationEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RelationEntry {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub relation_type: String,
+    pub weeks: Vec<String>,
+    pub logic: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SituationalRelationEntry {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub relation_type: String,
+    pub weeks: Vec<String>,
+    pub trigger: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EdgeWeight {
+    pub relation_type: String,
+    pub logic: String,
+    pub weeks: Vec<String>,
+    pub period_type: String,
+}
+
+fn parse_name(name: &str) -> (String, String, bool) {
+    for sep in &[" ⇄ ", " ↔ ", " → "] {
+        if let Some(pos) = name.find(sep) {
+            let source = name[..pos].trim().to_string();
+            let target = name[pos + sep.len()..].trim().to_string();
+            let bidirectional = *sep == " ⇄ " || *sep == " ↔ ";
+            return (source, target, bidirectional);
+        }
+    }
+    (String::new(), name.to_string(), false)
+}
+
+fn parse_type(raw: &str) -> String {
+    let raw = raw.trim();
+    if let Some(paren) = raw.find('（') {
+        raw[..paren].trim().to_string()
+    } else if let Some(paren) = raw.find('(') {
+        raw[..paren].trim().to_string()
+    } else if raw.contains("双向") {
+        "支持".to_string()
+    } else if raw.contains(" + ") {
+        raw.split(" + ").next().unwrap_or(raw).trim().to_string()
+    } else {
+        raw.to_string()
     }
 }
 

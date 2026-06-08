@@ -3,7 +3,7 @@ pub mod summary;
 
 use std::fs;
 
-use intent_graph::{IntentGraph, IntentStore, KeywordTable, NodeWeight};
+use intent_graph::{IntentGraph, Intent, KeywordTable, NodeWeight};
 use intent_llm::{extract_json, DeepSeekClient};
 use serde::{Deserialize, Serialize};
 
@@ -142,7 +142,7 @@ pub struct SessionFile {
 pub struct ScaffoldEngine {
     graph: IntentGraph,
     data: ScaffoldData,
-    store: IntentStore,
+    store: Intent,
     client: DeepSeekClient,
 }
 
@@ -154,7 +154,7 @@ impl ScaffoldEngine {
         let graph: IntentGraph = serde_json::from_value(v["graph"].clone())
             .map_err(|e| format!("GraphData: {}", e))
             .and_then(|gd: intent_graph::GraphData| Ok(IntentGraph::from_data(gd)))?;
-        let store = IntentStore::from_vec(data.intents.clone());
+        let store = Intent::from_vec(data.intents.clone());
         let client = DeepSeekClient::from_env()?;
         Ok(Self { graph, data, store, client })
     }

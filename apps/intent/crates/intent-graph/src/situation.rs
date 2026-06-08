@@ -3,8 +3,7 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-use crate::intent::{IntentId, IntentStore};
-use crate::keyword::{KeywordEntry, KeywordTable};
+use crate::intent::{IntentId, Intent};
 use crate::tokenizer;
 
 /// Full definition of the situation graph (nodes) in YAML form.
@@ -41,6 +40,18 @@ pub struct NodeWeight {
     #[serde(alias = "per_week_intents")]
     pub period_slices: Vec<PeriodSlice>,
 }
+
+// --- Keyword table (derived from situations) ---
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct KeywordEntry {
+    pub id: u32,
+    #[serde(alias = "name")]
+    pub title: String,
+    pub keywords: Vec<String>,
+}
+
+pub type KeywordTable = Vec<KeywordEntry>;
 
 pub(crate) fn match_situation_id(situations: &[Situation], reference: &str) -> Option<u32> {
     let ref_lower = reference.to_lowercase();
@@ -110,7 +121,7 @@ pub(crate) fn match_situation_id(situations: &[Situation], reference: &str) -> O
     best.map(|(id, _)| id)
 }
 
-pub fn build_keyword_table(nodes: &[NodeWeight], store: &IntentStore) -> KeywordTable {
+pub fn build_keyword_table(nodes: &[NodeWeight], store: &Intent) -> KeywordTable {
     nodes
         .iter()
         .map(|n| {
@@ -143,7 +154,7 @@ pub fn build_keyword_table_from_yaml(
     let yaml_root: GraphDefinition = serde_yaml::from_str(&content)?;
     let situations = &yaml_root.situations;
 
-    let mut store = IntentStore::new();
+    let mut store = Intent::new();
     let nodes: Vec<NodeWeight> = situations
         .iter()
         .map(|s| {
