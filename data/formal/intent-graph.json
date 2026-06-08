@@ -1,21 +1,28 @@
 {
   "metadata": {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "updated": "2026-06-08",
     "cluster_count": 10,
-    "edge_count": 17,
-    "session_derived_edge_count": 3,
-    "note": "0.2.0: Added derived_insights field and 3 session-derived edges from scaffold sessions 1780916670..1780916960"
+    "edge_count": 19,
+    "session_derived_edge_count": 5,
+    "note": "0.3.0: Added 2 multi-turn session-edges, updated derived_insights from project-09 (exp_multi) 5-turn experiment"
   },
   "derived_insights": {
-    "version": "0.1.0",
-    "source": "scaffold sessions 1780916670 .. 1780916960 (5 sessions, 5 turns)",
+    "version": "0.2.0",
+    "source": "scaffold sessions 1780916670..1780916960 + project-09 multi-turn experiment session_multi.json (5 turns)",
     "insights": [
       "核心瓶颈修正：R&D-业务脱节不是真正瓶颈——云+咨询核心业务使研发=产品，POC混乱→心理压力才是",
       "元模式认知：当前研发是元模式（产出方法的方法），低耗能是该元模式当前最优状态",
       "跨簇收敛：簇1和簇2独立收敛于「低耗能模式」，存在深层结构共振",
       "POC标准化/模板化是心理压力的逆转器：将混乱变可复用工具直接缓解簇2压力",
-      "簇5的商业模式压力并非来自研发-业务gap，而是来自POC质量→心理压力→交付效率的传导链"
+      "簇5的商业模式压力并非来自研发-业务gap，而是来自POC质量→心理压力→交付效率的传导链",
+      "[multi] 低耗能模式与心理滑翔状态是同一机制的不同表述——前者是流程设计，后者是心理体验",
+      "[multi] 心理预算应优先于资源预算：心理崩溃会导致所有POC归零，而资源不足可通过低耗能模式缓解",
+      "[multi] 低耗能模式的核心不是少做事，而是减少决策的认知负荷——通过模板将决策从手动判断变为自动触发",
+      "[multi] POC混乱本质是技术假设和市场假设的耦合，解耦它们能同时降低心理成本和商业风险",
+      "[multi] 元模式将低耗能从临时策略提升为设计原则，消解了标准化与涌现之间的表面冲突",
+      "[multi] 合并方案：轻量级POC模板 + CLI工具化 + 滑翔检查点 = 低耗能创造循环",
+      "[multi] 商业验证对象应从单个POC转向元模式方法本身的有效性"
     ],
     "convergences": [
       {
@@ -27,6 +34,16 @@
         "theme": "低耗能 (Low-effort)",
         "clusters": [1, 2],
         "description": "簇1演化轨迹终点含「低耗能模式」，簇2演化轨迹终点含「低耗能模式正式化」——两个簇从方法论和心理可持续性两个维度独立收敛到同一概念"
+      },
+      {
+        "theme": "组件化 (Componentization)",
+        "clusters": [1, 2],
+        "description": "多轮实验确认：低耗能模式应从心理体验上升为元模式的组件，滑翔检查点嵌入POC模板作为流程内置模块（session_multi turn 4-5）"
+      },
+      {
+        "theme": "心理预算 (Mental Budget)",
+        "clusters": [1, 2, 5],
+        "description": "跨簇新概念：簇1的POC流程频率、簇2的心理可持续性、簇5的商业交付压力交汇于「心理预算」——单个POC周期允许的最大情绪能量投入"
       }
     ]
   },
@@ -42,7 +59,7 @@
         "W22",
         "W23"
       ],
-      "evolution": "涌现哲学 → 重构循环 → CLI 工具链 → POC 标准化 → POC 范式 + 低耗能模式",
+      "evolution": "涌现哲学 → 重构循环 → CLI 工具链 → POC 标准化 → POC 范式 + 低耗能模式 → (multi) 元模式自我认知 + 低耗能组件化 + 合并方案(模板+CLI+滑翔检查点)",
       "per_week_intents": [
         {
           "week": "W19",
@@ -89,7 +106,7 @@
         "W22",
         "W23"
       ],
-      "evolution": "觉察压力 → 调节工具 → 发现\"滑翔\"状态 → 制度对冲 → 低耗能模式正式化",
+      "evolution": "觉察压力 → 调节工具 → 发现\"滑翔\"状态 → 制度对冲 → 低耗能模式正式化 → (multi) 心理预算量化 + 滑翔检查点嵌入POC模板",
       "per_week_intents": [
         {
           "week": "W19",
@@ -389,7 +406,7 @@
         "id": 1,
         "name": "研发方法论与工具链",
         "type": "持续关切",
-        "evolution": "涌现哲学 → 重构循环 → CLI 工具链 → POC 标准化 → POC 范式 + 低耗能模式",
+      "evolution": "涌现哲学 → 重构循环 → CLI 工具链 → POC 标准化 → POC 范式 + 低耗能模式 → (multi) 元模式自我认知 + 低耗能组件化 + 合并方案(模板+CLI+滑翔检查点)",
         "per_week_intents": [
           "建立以涌现为核心的快速研发方法论",
           "建立以重构为中心的研发体系",
@@ -404,7 +421,7 @@
         "id": 2,
         "name": "心理可持续性与创造状态管理",
         "type": "持续关切",
-        "evolution": "觉察压力 → 调节工具 → 发现\"滑翔\"状态 → 制度对冲 → 低耗能模式正式化",
+      "evolution": "觉察压力 → 调节工具 → 发现\"滑翔\"状态 → 制度对冲 → 低耗能模式正式化 → (multi) 心理预算量化 + 滑翔检查点嵌入POC模板",
         "per_week_intents": [
           "在高压探索中维护心理可持续性",
           "管理认知负荷与维持可持续节奏",
@@ -707,6 +724,24 @@
         "relation_type": "演化",
         "category": "session_derived",
         "logic": "POC质量提升直接增强商业交付能力（session 1780916670）",
+        "weeks": []
+      },
+      {
+        "id": 17,
+        "source": 1,
+        "target": 2,
+        "relation_type": "组件",
+        "category": "session_derived",
+        "logic": "多轮实验确认：低耗能模式应升级为元模式的组件，滑翔检查点嵌入POC模板作为流程内置模块（project-09 turn 4-5）",
+        "weeks": []
+      },
+      {
+        "id": 18,
+        "source": 10,
+        "target": 1,
+        "relation_type": "演化",
+        "category": "session_derived",
+        "logic": "元模式是对隐性研发经验的显性化封装，簇10的知识工程被元模式实例化（project-09 turn 4）",
         "weeks": []
       }
     ]
@@ -1541,7 +1576,8 @@
   "flywheel": {
     "description": "心理可持续性 → 研发探索(POC) → 商业收入 → 认知方法论 → (指导研发探索)",
     "conflict_edge": "POC混乱 → 心理压力（打破正向飞轮，session 1780916847验证）",
-    "meta_insight": "当前研发是元模式（产出方法的方法），低耗能是该元模式最优状态（session 1780916960）",
-    "bottleneck_correction": "核心瓶颈不在研发-业务脱节（云/咨询使研发=产品），而在POC质量不足→心理压力→研发效率下降"
+    "meta_insight": "当前研发是元模式（产出方法的方法），低耗能是该元模式最优状态（session 1780916960, project-09 turn 4）",
+    "bottleneck_correction": "核心瓶颈不在研发-业务脱节（云/咨询使研发=产品），而在POC质量不足→心理压力→研发效率下降",
+    "solution_path": "合并方案：轻量级POC模板 + CLI工具化 + 滑翔检查点 = 低耗能创造循环（project-09 turn 5）；心理预算作为关键约束"
   }
 }
