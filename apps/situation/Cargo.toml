@@ -2,10 +2,10 @@
 members = ["crates/llm", "crates/core"]
 
 [package]
-name = "qtcloud-think-intent"
+name = "qtcloud-think-situation"
 version = "0.1.0"
 edition = "2021"
-description = "GraphRAG scaffold CLI for intent-aware thinking"
+description = "GraphRAG scaffold CLI for situation-aware thinking"
 
 [dependencies]
 situation-graph = { path = "crates/core" }
@@ -14,5 +14,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [[bin]]
-name = "qtcloud-think-intent"
+name = "qtcloud-think-situation"
 path = "src/main.rs"

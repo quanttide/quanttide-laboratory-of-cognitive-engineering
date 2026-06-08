@@ -1,9 +1,9 @@
-use qtcloud_think_intent::repl::Repl;
-use qtcloud_think_intent::{ScaffoldEngine, SessionManager};
+use qtcloud_think_situation::repl::Repl;
+use qtcloud_think_situation::{ScaffoldEngine, SessionManager};
 
 fn main() -> Result<(), String> {
-    let engine = ScaffoldEngine::new("data/formal/situation-graph.json")?;
-    let sessions = SessionManager::new("apps/intent/data");
+    let engine = ScaffoldEngine::new("apps/situation/assets/situation-graph.json")?;
+    let sessions = SessionManager::new("apps/situation/data");
     let repl = Repl::new(engine, sessions);
     repl.run()
 }
