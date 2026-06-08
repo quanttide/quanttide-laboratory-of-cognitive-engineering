@@ -271,8 +271,8 @@ fn call_llm_for_pair(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let intent_yaml = "assets/refined/intent.yaml";
-    let raw_dir = "assets/raw";
+    let intent_yaml = "data/refined/intent.yaml";
+    let raw_dir = "data/raw";
 
     let clusters = collect_keywords(intent_yaml);
     let raw_files = find_raw_files(raw_dir);

@@ -224,9 +224,9 @@ fn parse_relations_from_response(response: &str) -> Vec<InferredRelation> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let intent_yaml = "assets/refined/intent.yaml";
-    let intent_md = "assets/analysis/intent.md";
-    let relation_md = "assets/analysis/intent-relation.md";
+    let intent_yaml = "data/refined/intent.yaml";
+    let intent_md = "data/analysis/intent.md";
+    let relation_md = "data/analysis/intent-relation.md";
 
     let (clusters, cluster_desc) = build_cluster_desc(intent_yaml);
     let intent_analysis = read_file(intent_md);
