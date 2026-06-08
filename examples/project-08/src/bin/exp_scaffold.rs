@@ -87,7 +87,7 @@ struct TurnInput {
     matched_clusters: Vec<ClusterMatch>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 struct ClusterMatch {
     id: u32,
     name: String,
@@ -106,7 +106,7 @@ struct TurnLlmResponse {
     parsed: ParsedResponse,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 struct ParsedResponse {
     positioning: String,
     connections: String,
