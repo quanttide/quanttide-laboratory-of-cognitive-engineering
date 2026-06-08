@@ -18,5 +18,5 @@
 
 ## 命名规范
 - 模型名用英文（Notion / Topic / Intent / Thought）
-- 文件名全小写 + 连字符（`intent-relations.md`）
+- 文件名全小写 + 连字符，用单数（`intent-relation.md`）
 - 目录按功能组织（`assets/raw/` 原始数据，`assets/refined/` 处理产物，`docs/` 文档）
