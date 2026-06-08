@@ -312,6 +312,7 @@ impl IntentGraph {
             for e in self.graph.edges(idx) {
                 let target_id = self.get_node_id(e.target());
                 if let (Some(target), weight) = (target_id, e.weight()) {
+                    if target == node_id { continue; }
                     result.push(NeighborInfo {
                         from: node_id,
                         to: target,
@@ -324,6 +325,7 @@ impl IntentGraph {
             for e in self.graph.edges_directed(idx, petgraph::Direction::Incoming) {
                 let source_id = self.get_node_id(e.source());
                 if let (Some(source), weight) = (source_id, e.weight()) {
+                    if source == node_id { continue; }
                     result.push(NeighborInfo {
                         from: source,
                         to: node_id,
@@ -351,6 +353,7 @@ impl IntentGraph {
             }
             for e in self.graph.edges(current) {
                 let next = e.target();
+                if next == current { continue; }
                 let weight = e.weight();
                 let from_id = self.get_node_id(current).unwrap_or(0);
                 let to_id = self.get_node_id(next).unwrap_or(0);
