@@ -1,0 +1,58 @@
+stable_relations:
+  - name: 心理可持续性 → 研发/探索
+    type: 支持（基础前提）
+    weeks: [W19, W20, W21, W22, W23]
+    logic: 心理状态是研发执行力的先决条件
+
+  - name: 认知方法论 → 研发方法论
+    type: 支持 + 互补张力
+    weeks: [W19, W21, W22, W23]
+    logic: 认知/意图框架为研发提供方向和收敛依据
+
+  - name: 标准化 → 平台/基础设施
+    type: 支持（底层基建）
+    weeks: [W19, W21, W23]
+    logic: 标准化是平台和工具链可维护性的前提
+
+  - name: 认知方法论 ↔ AI 协作
+    type: 双向支持
+    weeks: [W19, W21, W23]
+    logic: 认知方法论指导 AI 协作，AI 协作反哺认知工程
+
+  - name: 商业动力 ⇄ 心理可持续性
+    type: 冲突
+    weeks: [W19, W20, W22]
+    logic: 商业高压与心理可持续存在内在矛盾
+
+periodic_tensions:
+  - name: 结构化收敛 ⇄ 快速试错
+    type: 冲突
+    weeks: [W19, W23]
+    logic: 方法论迭代节点的周期性复发，需通过发散→收敛循环管理
+
+situational_relations:
+  - name: 反脆弱 ↔ 文化转型
+    type: 冲突
+    weeks: [W23]
+    trigger: 财务离职
+
+  - name: 框架投入 ↔ 商业产出
+    type: 冲突
+    weeks: [W22]
+    trigger: 资源竞争
+
+  - name: 创作 → 商业模式
+    type: 支持
+    weeks: [W20, W23]
+
+  - name: 团队建设 → 研发效率
+    type: 支持
+    weeks: [W22]
+
+  - name: 虚构创作 → 状态管理
+    type: 情感补给
+    weeks: [W21]
+
+flywheel:
+  description: 心理可持续性 → 研发探索 → 商业收入 → 认知方法论 → (指导研发探索)
+  conflict_edge: 商业收入 → 心理可持续性（压力传导）
