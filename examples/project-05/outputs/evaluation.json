@@ -11,21 +11,7 @@
       "approach_a": {
         "matched": [
           4
-        ],
-        "raw": {
-          "matched": [
-            {
-              "id": 4,
-              "name": "AI 协作范式与人机分工",
-              "score": 0.12,
-              "evidence": [
-                "AI",
-                "交互",
-                "适应"
-              ]
-            }
-          ]
-        }
+        ]
       },
       "approach_b": {
         "matched": [
@@ -81,72 +67,7 @@
           ]
         ],
         "conflicts": [],
-        "candidate_edges": [],
-        "raw": {
-          "match_nodes": [
-            {
-              "id": 4,
-              "name": "AI 协作范式与人机分工",
-              "score": 0.12,
-              "evidence": [
-                "AI",
-                "交互",
-                "适应"
-              ]
-            }
-          ],
-          "neighbors": [
-            {
-              "from": 4,
-              "to": 3,
-              "relation": "支持",
-              "logic": "认知方法论指导 AI 协作，AI 协作反哺认知工程",
-              "direction": "outgoing"
-            },
-            {
-              "from": 3,
-              "to": 4,
-              "relation": "支持",
-              "logic": "认知方法论指导 AI 协作，AI 协作反哺认知工程",
-              "direction": "incoming"
-            }
-          ],
-          "bfs_paths": [
-            [
-              {
-                "from": 4,
-                "to": 3,
-                "relation": "支持"
-              }
-            ],
-            [
-              {
-                "from": 4,
-                "to": 3,
-                "relation": "支持"
-              },
-              {
-                "from": 3,
-                "to": 4,
-                "relation": "支持"
-              }
-            ],
-            [
-              {
-                "from": 4,
-                "to": 3,
-                "relation": "支持"
-              },
-              {
-                "from": 3,
-                "to": 1,
-                "relation": "支持"
-              }
-            ]
-          ],
-          "conflicts": [],
-          "candidate_edges": []
-        }
+        "candidate_edges": []
       },
       "metrics": {
         "recall_a": 1.0,
@@ -219,21 +140,7 @@
       "approach_a": {
         "matched": [
           4
-        ],
-        "raw": {
-          "matched": [
-            {
-              "id": 4,
-              "name": "AI 协作范式与人机分工",
-              "score": 0.12,
-              "evidence": [
-                "AI",
-                "架构",
-                "设计"
-              ]
-            }
-          ]
-        }
+        ]
       },
       "approach_b": {
         "matched": [
@@ -289,72 +196,7 @@
           ]
         ],
         "conflicts": [],
-        "candidate_edges": [],
-        "raw": {
-          "match_nodes": [
-            {
-              "id": 4,
-              "name": "AI 协作范式与人机分工",
-              "score": 0.12,
-              "evidence": [
-                "AI",
-                "架构",
-                "设计"
-              ]
-            }
-          ],
-          "neighbors": [
-            {
-              "from": 4,
-              "to": 3,
-              "relation": "支持",
-              "logic": "认知方法论指导 AI 协作，AI 协作反哺认知工程",
-              "direction": "outgoing"
-            },
-            {
-              "from": 3,
-              "to": 4,
-              "relation": "支持",
-              "logic": "认知方法论指导 AI 协作，AI 协作反哺认知工程",
-              "direction": "incoming"
-            }
-          ],
-          "bfs_paths": [
-            [
-              {
-                "from": 4,
-                "to": 3,
-                "relation": "支持"
-              }
-            ],
-            [
-              {
-                "from": 4,
-                "to": 3,
-                "relation": "支持"
-              },
-              {
-                "from": 3,
-                "to": 4,
-                "relation": "支持"
-              }
-            ],
-            [
-              {
-                "from": 4,
-                "to": 3,
-                "relation": "支持"
-              },
-              {
-                "from": 3,
-                "to": 1,
-                "relation": "支持"
-              }
-            ]
-          ],
-          "conflicts": [],
-          "candidate_edges": []
-        }
+        "candidate_edges": []
       },
       "metrics": {
         "recall_a": 0.0,
@@ -432,24 +274,14 @@
         ]
       },
       "approach_a": {
-        "matched": [],
-        "raw": {
-          "matched": []
-        }
+        "matched": []
       },
       "approach_b": {
         "matched": [],
         "neighbors": [],
         "bfs_paths": [],
         "conflicts": [],
-        "candidate_edges": [],
-        "raw": {
-          "match_nodes": [],
-          "neighbors": [],
-          "bfs_paths": [],
-          "conflicts": [],
-          "candidate_edges": []
-        }
+        "candidate_edges": []
       },
       "metrics": {
         "recall_a": 0.0,
@@ -482,24 +314,14 @@
         ]
       },
       "approach_a": {
-        "matched": [],
-        "raw": {
-          "matched": []
-        }
+        "matched": []
       },
       "approach_b": {
         "matched": [],
         "neighbors": [],
         "bfs_paths": [],
         "conflicts": [],
-        "candidate_edges": [],
-        "raw": {
-          "match_nodes": [],
-          "neighbors": [],
-          "bfs_paths": [],
-          "conflicts": [],
-          "candidate_edges": []
-        }
+        "candidate_edges": []
       },
       "metrics": {
         "recall_a": 0.0,
@@ -529,27 +351,7 @@
       "approach_a": {
         "matched": [
           1
-        ],
-        "raw": {
-          "matched": [
-            {
-              "id": 1,
-              "name": "研发方法论与工具链",
-              "score": 0.18,
-              "evidence": [
-                "产出",
-                "低耗",
-                "动化",
-                "持产",
-                "模式",
-                "维持",
-                "耗能",
-                "能模",
-                "自动"
-              ]
-            }
-          ]
-        }
+        ]
       },
       "approach_b": {
         "matched": [
@@ -580,53 +382,7 @@
         ],
         "bfs_paths": [],
         "conflicts": [],
-        "candidate_edges": [],
-        "raw": {
-          "match_nodes": [
-            {
-              "id": 1,
-              "name": "研发方法论与工具链",
-              "score": 0.18,
-              "evidence": [
-                "产出",
-                "低耗",
-                "动化",
-                "持产",
-                "模式",
-                "维持",
-                "耗能",
-                "能模",
-                "自动"
-              ]
-            }
-          ],
-          "neighbors": [
-            {
-              "from": 8,
-              "to": 1,
-              "relation": "支持",
-              "logic": "",
-              "direction": "incoming"
-            },
-            {
-              "from": 3,
-              "to": 1,
-              "relation": "支持",
-              "logic": "认知/意图框架为研发提供方向和收敛依据",
-              "direction": "incoming"
-            },
-            {
-              "from": 2,
-              "to": 1,
-              "relation": "支持",
-              "logic": "心理状态是研发执行力的先决条件",
-              "direction": "incoming"
-            }
-          ],
-          "bfs_paths": [],
-          "conflicts": [],
-          "candidate_edges": []
-        }
+        "candidate_edges": []
       },
       "metrics": {
         "recall_a": 0.5,
@@ -670,28 +426,6 @@
     "avg_false_positive_a": 0.2,
     "avg_false_positive_b": 0.2,
     "avg_path_grade": null,
-    "_baselines": [
-      {
-        "id": "T1",
-        "segment": "我刚才在想，就是无论是代码编辑器还是文档编辑器，其实都不能够完全去适应当前 AI 的这种越来越多样和复杂的表达形式，及对它的交互的细节上的一些可能不是很适合，这这个就是我感觉我们可能需要或者说理论上存在一种新的交互方式，就是它和现在的这种交互方式会表面上差不多，可能还是三栏，但是在使用上可能会有一些本质区别。"
-      },
-      {
-        "id": "T2",
-        "segment": "所有人类意图驱动的结构化生成过程，包括产品设计、架构设计等。这确实是我的直觉，被 AI 给讲清楚了。确实是抱着这个潜意识探究的。智谱提出了一个叫做意图工程的新概念，说我实际上发现了这个雏形。我确实有在考虑对意图建模，但是没想到居然可成为一门工程。确实很意外。"
-      },
-      {
-        "id": "T3",
-        "segment": "财务突然离职，对我的心理造成了一些冲击。这加剧了我的不安感。我觉得我们得预防人突然跑路。这种时刻其实就是团队的反脆弱实验，就是说我们能不能维持住团队基本盘。"
-      },
-      {
-        "id": "T4",
-        "segment": "AI 在进行相互辩论的时候，会有一个特点，就是说如果没有人类干预的话，它就只能在一种状态之下收敛。然后人类的反馈丢进去过之后，会让 AI 跳出现有的框架。就我觉得这是一个很大的发现，就是怎么去定义反思，就是这种自己跟自己辩论，然后加入人类的反思，人人机反思或者人机辩论。"
-      },
-      {
-        "id": "T5",
-        "segment": "这种低耗能模式之下，我的脑子里面只能去用一些现有的概念。如果我在这种状态下都能够维持产出的话，那么这个系统的自动化程度就非常高了，就是说我只要把想法吐出去就可以了，那么这样就可以极大地减少我发现新洞察的这种压力。"
-      }
-    ],
     "caveat": "Test segments from W23 (used for graph construction), not truly unseen W24 data. Baseline is best-effort from intent analysis."
   }
 }
