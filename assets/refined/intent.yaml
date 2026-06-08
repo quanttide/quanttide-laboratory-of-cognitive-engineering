@@ -59,7 +59,7 @@ clusters:
     name: AI 协作范式与人机分工
     weeks: [W19, W20, W21, W23]
     type: 主干议题
-    evolution: "每人配一个秘书" → 双引擎架构(Opencode+Zed) → 人类立宪+AI 立法 → 可编辑阅读器交互范式
+    evolution: 「每人配一个秘书」→ 双引擎架构(Opencode+Zed) → 人类立宪+AI 立法 → 可编辑阅读器交互范式
     per_week:
       W19:
         - 确立以人为中心的 AI 协作范式
