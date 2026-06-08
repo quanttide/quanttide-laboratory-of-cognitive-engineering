@@ -1,9 +1,34 @@
 {
   "metadata": {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "updated": "2026-06-08",
     "cluster_count": 10,
-    "edge_count": 14
+    "edge_count": 17,
+    "session_derived_edge_count": 3,
+    "note": "0.2.0: Added derived_insights field and 3 session-derived edges from scaffold sessions 1780916670..1780916960"
+  },
+  "derived_insights": {
+    "version": "0.1.0",
+    "source": "scaffold sessions 1780916670 .. 1780916960 (5 sessions, 5 turns)",
+    "insights": [
+      "核心瓶颈修正：R&D-业务脱节不是真正瓶颈——云+咨询核心业务使研发=产品，POC混乱→心理压力才是",
+      "元模式认知：当前研发是元模式（产出方法的方法），低耗能是该元模式当前最优状态",
+      "跨簇收敛：簇1和簇2独立收敛于「低耗能模式」，存在深层结构共振",
+      "POC标准化/模板化是心理压力的逆转器：将混乱变可复用工具直接缓解簇2压力",
+      "簇5的商业模式压力并非来自研发-业务gap，而是来自POC质量→心理压力→交付效率的传导链"
+    ],
+    "convergences": [
+      {
+        "theme": "元 (Meta-pattern)",
+        "clusters": [1, 3, 4],
+        "description": "簇1(元模式研发：产生产品的方法)、簇3(元认知工程：二阶控制论)、簇4(元协作范式：人类立宪+AI立法)均以自指/元层次方式运作"
+      },
+      {
+        "theme": "低耗能 (Low-effort)",
+        "clusters": [1, 2],
+        "description": "簇1演化轨迹终点含「低耗能模式」，簇2演化轨迹终点含「低耗能模式正式化」——两个簇从方法论和心理可持续性两个维度独立收敛到同一概念"
+      }
+    ]
   },
   "cluster_descriptions": [
     {
@@ -656,6 +681,33 @@
         "weeks": [
           "W21"
         ]
+      },
+      {
+        "id": 14,
+        "source": 1,
+        "target": 2,
+        "relation_type": "触发",
+        "category": "session_derived",
+        "logic": "POC混乱是心理压力的核心来源（session 1780916847），同时POC模板化/工具化可逆转该压力",
+        "weeks": []
+      },
+      {
+        "id": 15,
+        "source": 5,
+        "target": 1,
+        "relation_type": "支持",
+        "category": "session_derived",
+        "logic": "云/咨询核心业务使研发=产品，商业大单需求直接驱动POC标准化与研发方法论优化（session 1780916721）",
+        "weeks": []
+      },
+      {
+        "id": 16,
+        "source": 1,
+        "target": 5,
+        "relation_type": "演化",
+        "category": "session_derived",
+        "logic": "POC质量提升直接增强商业交付能力（session 1780916670）",
+        "weeks": []
       }
     ]
   },
@@ -1487,7 +1539,9 @@
     }
   ],
   "flywheel": {
-    "description": "心理可持续性 → 研发探索 → 商业收入 → 认知方法论 → (指导研发探索)",
-    "conflict_edge": "商业收入 → 心理可持续性（压力传导）"
+    "description": "心理可持续性 → 研发探索(POC) → 商业收入 → 认知方法论 → (指导研发探索)",
+    "conflict_edge": "POC混乱 → 心理压力（打破正向飞轮，session 1780916847验证）",
+    "meta_insight": "当前研发是元模式（产出方法的方法），低耗能是该元模式最优状态（session 1780916960）",
+    "bottleneck_correction": "核心瓶颈不在研发-业务脱节（云/咨询使研发=产品），而在POC质量不足→心理压力→研发效率下降"
   }
 }
