@@ -45,7 +45,7 @@
 4. 跨话题的相同意图需合并
 5. 暂无法提炼意图的话题标注"意图模糊"待后续澄清
 
-**输出**：`outputs/task-1.2-intention-identification.md`，每个意图按以下格式交付：
+**输出**：`outputs/task-1.2-intent-identification.md`，每个意图按以下格式交付：
 
 ```markdown
 ## 意图：{意图名称}
@@ -62,7 +62,7 @@
 **备注**：{与其他意图的关系线索、演变趋势等}
 ```
 
-**实际输出**：详见 `outputs/task-1.2-intention-identification.md`，共识别 14 个意图
+**实际输出**：详见 `outputs/task-1.2-intent-identification.md`，共识别 14 个意图
 
 ### 其余任务
 
