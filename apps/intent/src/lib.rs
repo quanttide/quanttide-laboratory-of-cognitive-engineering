@@ -3,7 +3,7 @@ pub mod summary;
 
 use std::fs;
 
-use intent_graph::{IntentGraph, KeywordTable, NodeWeight};
+use intent_graph::{IntentGraph, IntentStore, KeywordTable, NodeWeight};
 use intent_llm::{extract_json, DeepSeekClient};
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +15,7 @@ pub struct ScaffoldData {
     #[serde(rename = "keyword_index")]
     keyword_index: KeywordTable,
     relation_types: Vec<RelationType>,
+    intents: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -141,6 +142,7 @@ pub struct SessionFile {
 pub struct ScaffoldEngine {
     graph: IntentGraph,
     data: ScaffoldData,
+    store: IntentStore,
     client: DeepSeekClient,
 }
 
@@ -152,8 +154,9 @@ impl ScaffoldEngine {
         let graph: IntentGraph = serde_json::from_value(v["graph"].clone())
             .map_err(|e| format!("GraphData: {}", e))
             .and_then(|gd: intent_graph::GraphData| Ok(IntentGraph::from_data(gd)))?;
+        let store = IntentStore::from_vec(data.intents.clone());
         let client = DeepSeekClient::from_env()?;
-        Ok(Self { graph, data, client })
+        Ok(Self { graph, data, store, client })
     }
 
     pub fn process_with_state(&self, input: &str, state: &DiscoveryState) -> Result<(ParsedResponse, String), String> {
@@ -246,8 +249,9 @@ impl ScaffoldEngine {
         for s in &self.data.situations {
             lines.push(format!("--- {}：{} ---", s.title, s.evolution));
             for slice in &s.period_slices {
-                for intent in &slice.intents {
-                    lines.push(format!("  {}: {}", slice.label, intent));
+                for id in &slice.intents {
+                    let content = self.store.get(*id).unwrap_or("?");
+                    lines.push(format!("  {}: {}", slice.label, content));
                 }
             }
         }

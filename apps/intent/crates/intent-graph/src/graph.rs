@@ -6,18 +6,16 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use serde::{Deserialize, Serialize};
 
+use crate::intent::{IntentId, IntentStore};
 use crate::keyword::KeywordTable;
-use crate::query::{
-    CandidateEdge, ConflictInfo, InferenceOutput, MatchedNode, NeighborInfo, PathStep,
-};
-use crate::relation::{self, EdgeWeight};
-use crate::situation::{self as sit, NodeWeight, PeriodSlice};
+use crate::relation::{self, EdgeWeight, RelationDefinition, RelationEntry};
+use crate::situation::{self as sit, GraphDefinition, NodeWeight, PeriodSlice};
 use crate::tokenizer;
-use crate::yaml::{GraphDefinition, RelationDefinition, RelationEntry};
 
 pub struct IntentGraph {
     graph: DiGraph<NodeWeight, EdgeWeight>,
     node_index_by_id: HashMap<u32, NodeIndex>,
+    pub store: IntentStore,
 }
 
 impl IntentGraph {
@@ -25,6 +23,7 @@ impl IntentGraph {
         IntentGraph {
             graph: DiGraph::new(),
             node_index_by_id: HashMap::new(),
+            store: IntentStore::new(),
         }
     }
 
@@ -44,9 +43,13 @@ impl IntentGraph {
             weeks.sort();
             for week in weeks {
                 if let Some(intents) = s.per_week.get(week) {
+                    let ids: Vec<IntentId> = intents
+                        .iter()
+                        .map(|content| ig.store.add(content.clone()))
+                        .collect();
                     period_slices.push(PeriodSlice {
                         label: week.to_string(),
-                        intents: intents.clone(),
+                        intents: ids,
                     });
                 }
             }
@@ -419,7 +422,11 @@ impl IntentGraph {
                 weight: e.weight().clone(),
             });
         }
-        GraphData { nodes, edges }
+        GraphData {
+            nodes,
+            edges,
+            intents: self.store.clone().into_vec(),
+        }
     }
 
     pub fn save_json(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -440,6 +447,7 @@ impl IntentGraph {
 
     pub fn from_data(data: GraphData) -> Self {
         let mut ig = IntentGraph::new();
+        ig.store = IntentStore::from_vec(data.intents);
         for node in &data.nodes {
             let idx = ig.graph.add_node(node.clone());
             ig.node_index_by_id.insert(node.id, idx);
@@ -472,12 +480,65 @@ impl IntentGraph {
     }
 }
 
+// --- Graph query result types ---
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MatchedNode {
+    pub id: u32,
+    pub title: String,
+    pub score: f64,
+    pub evidence: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NeighborInfo {
+    pub from: u32,
+    pub to: u32,
+    pub relation: String,
+    pub logic: String,
+    pub direction: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PathStep {
+    pub from: u32,
+    pub to: u32,
+    pub relation: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ConflictInfo {
+    pub node_a: u32,
+    pub node_b: u32,
+    pub relation_type: String,
+    pub via: Vec<u32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CandidateEdge {
+    pub from: u32,
+    pub to: u32,
+    pub proposed_type: String,
+    pub evidence: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InferenceOutput {
+    pub match_nodes: Vec<MatchedNode>,
+    pub neighbors: Vec<NeighborInfo>,
+    pub bfs_paths: Vec<Vec<PathStep>>,
+    pub conflicts: Vec<ConflictInfo>,
+    pub candidate_edges: Vec<CandidateEdge>,
+}
+
 // --- Graph serialization types ---
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GraphData {
     pub nodes: Vec<NodeWeight>,
     pub edges: Vec<EdgeData>,
+    pub intents: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
