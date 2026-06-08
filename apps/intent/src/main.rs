@@ -6,7 +6,7 @@ const MAX_TURNS: usize = 16;
 
 fn main() -> Result<(), String> {
     let engine = ScaffoldEngine::new("data/formal/intent-graph.json")?;
-    let sessions = SessionManager::new("data/formal/sessions");
+    let sessions = SessionManager::new("apps/intent/data");
 
     println!("=== qtcloud-think-intent ===");
     println!("Type your thoughts ('exit' to quit)\n");

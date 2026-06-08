@@ -1,3 +1,4 @@
 /target
 qtcloud_session_*.json
 target/
+apps/intent/data/
