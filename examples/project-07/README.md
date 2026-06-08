@@ -2,7 +2,7 @@
 
 ## 问题
 
-当前图谱中 10 个意图簇关系稀疏——簇5仅连接 2 个邻居，簇10完全孤立。但人类可读的分析报告（`data/analysis/intent.md`、`intent-relation.md`）中包含大量隐含关系证据（事件触发、演化链、时序模式、冲突动态），这些从未被编码为图边。
+当前图谱中 10 个意图簇关系稀疏——簇5仅连接 2 个邻居，簇10完全孤立。但人类可读的分析报告（`data/report/intent.md`、`intent-relation.md`）中包含大量隐含关系证据（事件触发、演化链、时序模式、冲突动态），这些从未被编码为图边。
 
 **核心问题**：如何让所有簇相互关联起来？
 
@@ -12,8 +12,8 @@
 
 ### 输入
 
-- `data/analysis/intent.md`：五周意图演化全景
-- `data/analysis/intent-relation.md`：意图关系分析
+- `data/report/intent.md`：五周意图演化全景
+- `data/report/intent-relation.md`：意图关系分析
 - `data/refined/intent.yaml`：10 个簇的原始数据
 
 ### 推理引擎
