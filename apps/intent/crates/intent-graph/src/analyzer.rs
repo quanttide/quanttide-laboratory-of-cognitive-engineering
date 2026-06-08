@@ -111,6 +111,8 @@ impl SituationIndex {
         situation_a: u32,
         situation_b: u32,
         threshold: f64,
+        week_prefix: &str,
+        max_quote_len: usize,
     ) -> Vec<Cooccurrence> {
         let mut results = Vec::new();
         for file_path in files {
@@ -128,11 +130,11 @@ impl SituationIndex {
             if score_a > threshold && score_b > threshold {
                 let week = file_path
                     .split('/')
-                    .find(|p| p.starts_with("2026-W"))
+                    .find(|p| p.starts_with(week_prefix))
                     .unwrap_or("unknown")
                     .to_string();
                 let source = file_path.split('/').last().unwrap_or("unknown").to_string();
-                let quote = body.chars().take(500).collect::<String>().trim().to_string();
+                let quote = body.chars().take(max_quote_len).collect::<String>().trim().to_string();
                 results.push(Cooccurrence { source, week, quote });
             }
         }
@@ -140,9 +142,9 @@ impl SituationIndex {
     }
 }
 
-pub fn find_raw_files(base_dir: &str) -> Vec<String> {
+pub fn find_raw_files(base_dir: &str, weeks: &[&str]) -> Vec<String> {
     let mut files = Vec::new();
-    for w in &["2026-W19", "2026-W20", "2026-W21", "2026-W22", "2026-W23"] {
+    for w in weeks {
         let dir_path = format!("{}/{}", base_dir, w);
         if let Ok(entries) = fs::read_dir(&dir_path) {
             for entry in entries.flatten() {
