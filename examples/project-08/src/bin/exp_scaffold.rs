@@ -304,8 +304,8 @@ fn save_turn(session_path: &str, turn: &Turn) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let data_path = "data/formal/scaffold-data.json";
-    let sessions_dir = "data/formal";
+    let data_path = "data/formal/intent-graph.json";
+    let sessions_dir = "data/formal/sessions";
 
     let data: ScaffoldData =
         serde_json::from_str(&fs::read_to_string(data_path)?)?;
