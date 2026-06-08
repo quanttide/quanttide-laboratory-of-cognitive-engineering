@@ -1,15 +1,15 @@
 {
   "metadata": {
-    "version": "0.3.0",
+    "version": "0.4.0",
     "updated": "2026-06-08",
     "cluster_count": 10,
     "edge_count": 19,
     "session_derived_edge_count": 5,
-    "note": "0.3.0: Added 2 multi-turn session-edges, updated derived_insights from project-09 (exp_multi) 5-turn experiment"
+    "note": "0.4.0: Added project-10 motif discovery insights and convergences (concern tracing across 7 clusters)"
   },
   "derived_insights": {
-    "version": "0.2.0",
-    "source": "scaffold sessions 1780916670..1780916960 + project-09 multi-turn experiment session_multi.json (5 turns)",
+    "version": "0.3.0",
+    "source": "scaffold sessions + project-09 multi-turn + project-10 motif discovery (5 turns)",
     "insights": [
       "核心瓶颈修正：R&D-业务脱节不是真正瓶颈——云+咨询核心业务使研发=产品，POC混乱→心理压力才是",
       "元模式认知：当前研发是元模式（产出方法的方法），低耗能是该元模式当前最优状态",
@@ -22,7 +22,11 @@
       "[multi] POC混乱本质是技术假设和市场假设的耦合，解耦它们能同时降低心理成本和商业风险",
       "[multi] 元模式将低耗能从临时策略提升为设计原则，消解了标准化与涌现之间的表面冲突",
       "[multi] 合并方案：轻量级POC模板 + CLI工具化 + 滑翔检查点 = 低耗能创造循环",
-      "[multi] 商业验证对象应从单个POC转向元模式方法本身的有效性"
+      "[multi] 商业验证对象应从单个POC转向元模式方法本身的有效性",
+      "[p10] POC质量与心理压力构成负反馈循环（提高质量→更多混乱→更大压力），需要结构化解耦而非局部优化",
+      "[p10] 一个统一母题贯穿簇1/2/3/5/7：将心理可持续性机制工程化为研发工具链的默认组件",
+      "[p10] 关键词匹配永远抓不住跨簇母题——「心理预算」和「POC模板」无共同关键词但属同一关切",
+      "[p10] 母题发现不依赖已编目的边——语义关联可以穿透未连接的簇"
     ],
     "convergences": [
       {
@@ -44,6 +48,11 @@
         "theme": "心理预算 (Mental Budget)",
         "clusters": [1, 2, 5],
         "description": "跨簇新概念：簇1的POC流程频率、簇2的心理可持续性、簇5的商业交付压力交汇于「心理预算」——单个POC周期允许的最大情绪能量投入"
+      },
+      {
+        "theme": "元工作流 (Meta-workflow)",
+        "clusters": [1, 2, 3, 5, 7],
+        "description": "project-10 母题发现验证：一个统一关切贯穿5个理论无关的簇——将心理可持续性机制工程化为研发工具链的默认组件，形成从技术探索到商业验证的低摩擦闭环"
       }
     ]
   },
@@ -1575,9 +1584,10 @@
   ],
   "flywheel": {
     "description": "心理可持续性 → 研发探索(POC) → 商业收入 → 认知方法论 → (指导研发探索)",
-    "conflict_edge": "POC混乱 → 心理压力（打破正向飞轮，session 1780916847验证）",
+    "conflict_edge": "POC混乱 → 心理压力（负反馈循环，project-10 motif验证）",
     "meta_insight": "当前研发是元模式（产出方法的方法），低耗能是该元模式最优状态（session 1780916960, project-09 turn 4）",
     "bottleneck_correction": "核心瓶颈不在研发-业务脱节（云/咨询使研发=产品），而在POC质量不足→心理压力→研发效率下降",
-    "solution_path": "合并方案：轻量级POC模板 + CLI工具化 + 滑翔检查点 = 低耗能创造循环（project-09 turn 5）；心理预算作为关键约束"
+    "solution_path": "合并方案：轻量级POC模板 + CLI工具化 + 滑翔检查点 = 低耗能创造循环（project-09 turn 5）；心理预算作为关键约束",
+    "motif_discovery": "一个统一母题贯穿簇1/2/3/5/7：将心理可持续性机制工程化为研发工具链的默认组件，形成从技术探索到商业验证的低摩擦闭环（project-10, 2026-06-08）"
   }
 }
