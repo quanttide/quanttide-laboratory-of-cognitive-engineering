@@ -1,3 +1,4 @@
+pub mod analyzer;
 pub mod builder;
 pub mod graph;
 pub mod models;
