@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/intent-llm", "crates/intent-graph"]
+members = ["crates/llm", "crates/core"]
 
 [package]
 name = "qtcloud-think-intent"
@@ -8,8 +8,8 @@ edition = "2021"
 description = "GraphRAG scaffold CLI for intent-aware thinking"
 
 [dependencies]
-intent-graph = { path = "crates/intent-graph" }
-intent-llm = { path = "crates/intent-llm" }
+situation-graph = { path = "crates/core" }
+llm = { path = "crates/llm" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

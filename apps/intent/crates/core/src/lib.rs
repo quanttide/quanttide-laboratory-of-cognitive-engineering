@@ -4,7 +4,7 @@ pub mod situation;
 pub mod tokenizer;
 
 pub use graph::{
-    CandidateEdge, ConflictInfo, EdgeData, EdgeWeight, GraphData, InferenceOutput, IntentGraph,
+    CandidateEdge, ConflictInfo, EdgeData, EdgeWeight, GraphData, InferenceOutput, SituationGraph,
     MatchedNode, NeighborInfo, PathStep, RelationDefinition, RelationEntry, RejectLog,
     SituationalRelationEntry,
 };

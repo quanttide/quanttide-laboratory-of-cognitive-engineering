@@ -3,8 +3,8 @@ pub mod summary;
 
 use std::fs;
 
-use intent_graph::{IntentGraph, Intent, KeywordTable, NodeWeight};
-use intent_llm::{extract_json, DeepSeekClient};
+use situation_graph::{SituationGraph, Intent, KeywordTable, NodeWeight};
+use llm::{extract_json, DeepSeekClient};
 use serde::{Deserialize, Serialize};
 
 // --- Scaffold data (loaded from intent-graph.json) ---
@@ -140,7 +140,7 @@ pub struct SessionFile {
 // --- ScaffoldEngine ---
 
 pub struct ScaffoldEngine {
-    graph: IntentGraph,
+    graph: SituationGraph,
     data: ScaffoldData,
     store: Intent,
     client: DeepSeekClient,
@@ -151,9 +151,9 @@ impl ScaffoldEngine {
         let content = fs::read_to_string(graph_path).map_err(|e| format!("IO: {}", e))?;
         let v: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("JSON: {}", e))?;
         let data: ScaffoldData = serde_json::from_value(v.clone()).map_err(|e| format!("ScaffoldData: {}", e))?;
-        let graph: IntentGraph = serde_json::from_value(v["graph"].clone())
+        let graph: SituationGraph = serde_json::from_value(v["graph"].clone())
             .map_err(|e| format!("GraphData: {}", e))
-            .and_then(|gd: intent_graph::GraphData| Ok(IntentGraph::from_data(gd)))?;
+            .and_then(|gd: situation_graph::GraphData| Ok(SituationGraph::from_data(gd)))?;
         let store = Intent::from_vec(data.intents.clone());
         let client = DeepSeekClient::from_env()?;
         Ok(Self { graph, data, store, client })

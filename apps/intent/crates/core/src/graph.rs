@@ -10,15 +10,15 @@ use crate::intent::{IntentId, Intent};
 use crate::situation::{self as sit, GraphDefinition, KeywordTable, NodeWeight, PeriodSlice};
 use crate::tokenizer;
 
-pub struct IntentGraph {
+pub struct SituationGraph {
     graph: DiGraph<NodeWeight, EdgeWeight>,
     node_index_by_id: HashMap<u32, NodeIndex>,
     pub store: Intent,
 }
 
-impl IntentGraph {
+impl SituationGraph {
     pub fn new() -> Self {
-        IntentGraph {
+        SituationGraph {
             graph: DiGraph::new(),
             node_index_by_id: HashMap::new(),
             store: Intent::new(),
@@ -29,7 +29,7 @@ impl IntentGraph {
         intent_path: &str,
         relation_path: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut ig = IntentGraph::new();
+        let mut ig = SituationGraph::new();
 
         let intent_content = fs::read_to_string(intent_path)?;
         let yaml_root: GraphDefinition = serde_yaml::from_str(&intent_content)?;
@@ -444,7 +444,7 @@ impl IntentGraph {
     }
 
     pub fn from_data(data: GraphData) -> Self {
-        let mut ig = IntentGraph::new();
+        let mut ig = SituationGraph::new();
         ig.store = Intent::from_vec(data.intents);
         for node in &data.nodes {
             let idx = ig.graph.add_node(node.clone());

@@ -227,26 +227,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "intent-graph"
-version = "0.1.0"
-dependencies = [
- "petgraph",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
-]
-
-[[package]]
-name = "intent-llm"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "ureq",
-]
-
-[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -263,6 +243,15 @@ name = "litemap"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
+
+[[package]]
+name = "llm"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ureq",
+]
 
 [[package]]
 name = "log"
@@ -330,10 +319,10 @@ dependencies = [
 name = "qtcloud-think-intent"
 version = "0.1.0"
 dependencies = [
- "intent-graph",
- "intent-llm",
+ "llm",
  "serde",
  "serde_json",
+ "situation-graph",
 ]
 
 [[package]]
@@ -496,6 +485,17 @@ name = "simd-adler32"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
+
+[[package]]
+name = "situation-graph"
+version = "0.1.0"
+dependencies = [
+ "petgraph",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+]
 
 [[package]]
 name = "smallvec"
