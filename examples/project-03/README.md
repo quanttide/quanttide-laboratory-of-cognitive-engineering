@@ -4,6 +4,12 @@
 
 对于一段新输入文本，**使用知识图谱的推理**比**纯文本关键词匹配**能否发现更多有价值的隐含关联？
 
+## 技术栈
+
+- Rust + [petgraph](https://crates.io/crates/petgraph)（图数据结构 + BFS 等图算法）
+- serde + serde_json（YAML/JSON 序列化）
+- 两个 binary：`approach_a`（文本匹配）+ `approach_b`（图谱推理）
+
 ## 验证方法
 
 同一段输入 → 走两条技术路线 → 对比输出质量
@@ -29,26 +35,48 @@
 2. 从 `intent-relation.yaml` 提取边（source, target, type, logic, weeks），包含 stable/periodic/situational 三类
 3. 序列化为 `data/graph.json`
 
-**输出**：`data/graph.json` + Rust 中的图数据结构
+**输出**：`data/graph.json` + `src/graph.rs`（基于 petgraph 的图数据结构）
 
 ```rust
-// src/graph.rs — 实际用于图计算的结构
-struct Node {
+// src/graph.rs
+use petgraph::graph::{Graph, NodeIndex};
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+struct NodeWeight {
     id: u32,
     name: String,
-    r#type: String,
+    r#type: String,     // "持续关切" | "主干议题" | "单周验证"
+    evolution: String,
 }
 
-struct Edge {
-    source: u32,
-    target: u32,
-    relation_type: String, // "支持" | "冲突" | "依赖" | "包含"
+#[derive(Serialize, Deserialize)]
+struct EdgeWeight {
+    relation_type: String,  // "支持" | "冲突" | "依赖" | "包含"
     logic: String,
 }
 
-struct Graph {
-    nodes: Vec<Node>,
-    edges: Vec<Edge>,
+// 实际用于图计算的类型
+type IntentGraph = Graph<NodeWeight, EdgeWeight>;
+
+impl IntentGraph {
+    // 从 YAML 加载构建
+    fn from_yaml(intent_path: &str, relation_path: &str) -> Self
+
+    // 匹配：给定文本关键词，返回匹配的节点 ID 列表（方案 A + B 共用）
+    fn match_nodes(&self, keywords: &[String]) -> Vec<NodeIndex>
+
+    // 邻居发现：返回节点的直接邻居及连接边
+    fn neighbors(&self, node: NodeIndex) -> Vec<(NodeIndex, NodeIndex, &EdgeWeight)>
+
+    // BFS 遍历：从节点出发走 n 跳
+    fn bfs(&self, start: NodeIndex, max_depth: usize) -> Vec<Vec<(NodeIndex, NodeIndex, &EdgeWeight)>>
+
+    // 冲突检测：检查匹配的节点之间是否有冲突路径
+    fn detect_conflicts(&self, nodes: &[NodeIndex]) -> Vec<(NodeIndex, NodeIndex)>
+
+    // 导出推理结果 JSON
+    fn infer(&self, text: &str) -> String
 }
 ```
 
@@ -73,10 +101,10 @@ struct Graph {
 **输入**：`data/graph.json`（完整的图和关系）+ 测试文本
 
 **算法**：
-1. **节点匹配**：用 3.2 的方法匹配到起始节点
-2. **邻居发现**：从起始节点出发，列出所有直接邻居（支持/冲突/依赖）
-3. **多跳路径**：BFS 遍历 2 跳，输出推理路径（node1 →edge→ node2 →edge→ node3）
-4. **冲突检测**：检查匹配节点之间是否存在冲突边或间接冲突路径
+1. **节点匹配**：调用 `graph.match_nodes()` 匹配到起始节点
+2. **邻居发现**：调用 `graph.neighbors()` 列出所有直接邻居（支持/冲突/依赖）
+3. **多跳路径**：调用 `graph.bfs()` 遍历 2 跳，输出推理路径
+4. **冲突检测**：调用 `graph.detect_conflicts()` 检查匹配节点间的冲突
 
 **输出**：`src/approach_b.rs`
 
