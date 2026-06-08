@@ -1,5 +1,4 @@
 pub mod analyzer;
-pub mod builder;
 pub mod graph;
 pub mod intent;
 pub mod keyword;
@@ -9,10 +8,11 @@ pub mod situation;
 pub mod tokenizer;
 pub mod yaml;
 
-pub use builder::GraphBuilder;
 pub use graph::{EdgeData, GraphData, IntentGraph, RejectLog};
-pub use keyword::{KeywordEntry, KeywordTable};
+pub use keyword::{save_table as save_keyword_table, KeywordEntry, KeywordTable};
 pub use query::{CandidateEdge, ConflictInfo, InferenceOutput, MatchedNode, NeighborInfo, PathStep};
 pub use relation::EdgeWeight;
-pub use situation::{NodeWeight, PeriodSlice, Situation};
-pub use yaml::{RelationEntry, RelationDefinition, SituationalRelationEntry, GraphDefinition};
+pub use situation::{
+    build_keyword_table, build_keyword_table_from_yaml, NodeWeight, PeriodSlice, Situation,
+};
+pub use yaml::{GraphDefinition, RelationDefinition, RelationEntry};

@@ -6,14 +6,14 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use serde::{Deserialize, Serialize};
 
-use crate::builder::GraphBuilder;
 use crate::keyword::KeywordTable;
 use crate::query::{
     CandidateEdge, ConflictInfo, InferenceOutput, MatchedNode, NeighborInfo, PathStep,
 };
-use crate::relation::EdgeWeight;
-use crate::situation::NodeWeight;
+use crate::relation::{self, EdgeWeight};
+use crate::situation::{self as sit, NodeWeight, PeriodSlice};
 use crate::tokenizer;
+use crate::yaml::{GraphDefinition, RelationDefinition, RelationEntry};
 
 pub struct IntentGraph {
     graph: DiGraph<NodeWeight, EdgeWeight>,
@@ -28,8 +28,93 @@ impl IntentGraph {
         }
     }
 
-    pub fn load(intent_path: &str, relation_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        GraphBuilder::from_yaml(intent_path, relation_path)
+    pub fn from_yaml(
+        intent_path: &str,
+        relation_path: &str,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut ig = IntentGraph::new();
+
+        let intent_content = fs::read_to_string(intent_path)?;
+        let yaml_root: GraphDefinition = serde_yaml::from_str(&intent_content)?;
+        let situations = yaml_root.situations;
+
+        for s in &situations {
+            let mut period_slices: Vec<PeriodSlice> = Vec::new();
+            let mut weeks: Vec<&str> = s.per_week.keys().map(|s| s.as_str()).collect();
+            weeks.sort();
+            for week in weeks {
+                if let Some(intents) = s.per_week.get(week) {
+                    period_slices.push(PeriodSlice {
+                        label: week.to_string(),
+                        intents: intents.clone(),
+                    });
+                }
+            }
+            ig.add_node(NodeWeight {
+                id: s.id,
+                title: s.title.clone(),
+                r#type: s.situation_type.clone().unwrap_or_default(),
+                evolution: s.evolution.clone().unwrap_or_default(),
+                period_slices,
+            });
+        }
+
+        let relation_content = fs::read_to_string(relation_path)?;
+        let relation_yaml: RelationDefinition = serde_yaml::from_str(&relation_content)?;
+
+        for entry in &relation_yaml.stable_relations {
+            ig.add_edge_entry(entry, "stable", &situations);
+        }
+        for entry in &relation_yaml.periodic_tensions {
+            ig.add_edge_entry(entry, "periodic", &situations);
+        }
+        for entry in &relation_yaml.situational_relations {
+            ig.add_edge_entry(
+                &RelationEntry {
+                    name: entry.name.clone(),
+                    relation_type: entry.relation_type.clone(),
+                    weeks: entry.weeks.clone(),
+                    logic: String::new(),
+                },
+                "situational",
+                &situations,
+            );
+        }
+
+        Ok(ig)
+    }
+
+    fn add_edge_entry(
+        &mut self,
+        entry: &RelationEntry,
+        period_type: &str,
+        situations: &[sit::Situation],
+    ) {
+        let (source_ref, target_ref, bidirectional) = relation::parse_name(&entry.name);
+        if source_ref.is_empty() {
+            return;
+        }
+        let source_id = sit::match_situation_id(situations, &source_ref);
+        let target_id = sit::match_situation_id(situations, &target_ref);
+        if let (Some(sid), Some(tid)) = (source_id, target_id) {
+            let rel_type = relation::parse_type(&entry.relation_type);
+            let weight = EdgeWeight {
+                relation_type: rel_type.clone(),
+                logic: entry.logic.clone(),
+                weeks: entry.weeks.clone(),
+                period_type: period_type.to_string(),
+            };
+            self.add_edge(sid, tid, weight);
+            if bidirectional {
+                let rev_weight = EdgeWeight {
+                    relation_type: rel_type,
+                    logic: entry.logic.clone(),
+                    weeks: entry.weeks.clone(),
+                    period_type: period_type.to_string(),
+                };
+                self.add_edge(tid, sid, rev_weight);
+            }
+        }
     }
 
     pub fn node_count(&self) -> usize {
