@@ -1,3 +1,6 @@
+pub mod repl;
+pub mod summary;
+
 use std::fs;
 
 use intent_llm::{extract_json, DeepSeekClient};
@@ -373,6 +376,6 @@ fn bigrams(text: &str) -> Vec<String> {
     text.chars().collect::<Vec<_>>().windows(2).map(|w| w.iter().collect()).collect()
 }
 
-fn ts() -> String {
+pub fn ts() -> String {
     format!("{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())
 }
