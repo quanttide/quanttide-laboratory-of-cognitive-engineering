@@ -245,9 +245,9 @@ impl ScaffoldEngine {
         let mut lines = Vec::new();
         for s in &self.data.situations {
             lines.push(format!("--- {}：{} ---", s.title, s.evolution));
-            for pw in &s.per_week_intents {
-                for intent in &pw.intents {
-                    lines.push(format!("  {}: {}", pw.week, intent));
+            for slice in &s.period_slices {
+                for intent in &slice.intents {
+                    lines.push(format!("  {}: {}", slice.label, intent));
                 }
             }
         }

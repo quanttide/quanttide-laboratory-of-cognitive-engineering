@@ -13,8 +13,9 @@ pub struct Situation {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PerWeek {
-    pub week: String,
+pub struct PeriodSlice {
+    #[serde(alias = "week")]
+    pub label: String,
     pub intents: Vec<String>,
 }
 
@@ -25,5 +26,6 @@ pub struct NodeWeight {
     pub title: String,
     pub r#type: String,
     pub evolution: String,
-    pub per_week_intents: Vec<PerWeek>,
+    #[serde(alias = "per_week_intents")]
+    pub period_slices: Vec<PeriodSlice>,
 }

@@ -4,9 +4,15 @@ use std::path::Path;
 
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
+use serde::{Deserialize, Serialize};
 
 use crate::builder::GraphBuilder;
-use crate::models::*;
+use crate::keyword::KeywordTable;
+use crate::query::{
+    CandidateEdge, ConflictInfo, InferenceOutput, MatchedNode, NeighborInfo, PathStep,
+};
+use crate::relation::EdgeWeight;
+use crate::situation::NodeWeight;
 use crate::tokenizer;
 
 pub struct IntentGraph {
@@ -379,4 +385,24 @@ impl IntentGraph {
         }
         false
     }
+}
+
+// --- Graph serialization types ---
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GraphData {
+    pub nodes: Vec<NodeWeight>,
+    pub edges: Vec<EdgeData>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EdgeData {
+    pub source: u32,
+    pub target: u32,
+    pub weight: EdgeWeight,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RejectLog {
+    pub rejected: Vec<(u32, u32)>,
 }

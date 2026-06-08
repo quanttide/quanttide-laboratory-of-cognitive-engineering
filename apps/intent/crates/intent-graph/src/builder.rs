@@ -1,8 +1,11 @@
 use std::fs;
 use std::path::Path;
 
-use crate::models::*;
+use crate::keyword::{KeywordEntry, KeywordTable};
+use crate::relation::EdgeWeight;
+use crate::situation::{NodeWeight, PeriodSlice, Situation};
 use crate::tokenizer;
+use crate::yaml::{GraphDefinition, RelationDefinition, RelationEntry};
 
 fn parse_relation_name(name: &str) -> (String, String, bool) {
     for sep in &[" ⇄ ", " ↔ ", " → "] {
@@ -109,17 +112,17 @@ impl GraphBuilder {
         let mut ig = super::graph::IntentGraph::new();
 
         let intent_content = fs::read_to_string(intent_path)?;
-        let intent_yaml: IntentYaml = serde_yaml::from_str(&intent_content)?;
-        let situations = intent_yaml.situations;
+        let yaml_root: GraphDefinition = serde_yaml::from_str(&intent_content)?;
+        let situations = yaml_root.situations;
 
         for s in &situations {
-            let mut per_week_intents: Vec<PerWeek> = Vec::new();
+            let mut period_slices: Vec<PeriodSlice> = Vec::new();
             let mut weeks: Vec<&str> = s.per_week.keys().map(|s| s.as_str()).collect();
             weeks.sort();
             for week in weeks {
                 if let Some(intents) = s.per_week.get(week) {
-                    per_week_intents.push(PerWeek {
-                        week: week.to_string(),
+                    period_slices.push(PeriodSlice {
+                        label: week.to_string(),
                         intents: intents.clone(),
                     });
                 }
@@ -129,13 +132,13 @@ impl GraphBuilder {
                 title: s.title.clone(),
                 r#type: s.situation_type.clone().unwrap_or_default(),
                 evolution: s.evolution.clone().unwrap_or_default(),
-                per_week_intents,
+                period_slices,
             };
             ig.add_node(node);
         }
 
         let relation_content = fs::read_to_string(relation_path)?;
-        let relation_yaml: RelationYaml = serde_yaml::from_str(&relation_content)?;
+        let relation_yaml: RelationDefinition = serde_yaml::from_str(&relation_content)?;
 
         for entry in &relation_yaml.stable_relations {
             Self::add_edge_entry(&mut ig, entry, "stable", &situations);
@@ -221,8 +224,8 @@ impl GraphBuilder {
         intent_path: &str,
     ) -> Result<KeywordTable, Box<dyn std::error::Error>> {
         let content = fs::read_to_string(intent_path)?;
-        let yaml: IntentYaml = serde_yaml::from_str(&content)?;
-        Ok(Self::build_keyword_table(&yaml.situations))
+        let yaml_root: GraphDefinition = serde_yaml::from_str(&content)?;
+        Ok(Self::build_keyword_table(&yaml_root.situations))
     }
 
     pub fn save_keyword_table(
