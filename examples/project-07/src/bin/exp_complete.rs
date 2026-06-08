@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::fs;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+
+use intent_llm::{extract_json, DeepSeekClient};
 
 #[derive(Serialize, Clone)]
 struct EvidenceCitation {
@@ -178,10 +180,8 @@ fn call_llm_for_pair(
     name_a: &str,
     name_b: &str,
     evidence: &[EvidenceCitation],
-) -> Result<CompletedRelation, Box<dyn std::error::Error>> {
-    let api_key = std::env::var("DEEPSEEK_API_KEY")
-        .map_err(|_| "DEEPSEEK_API_KEY not set")?;
-
+    client: &DeepSeekClient,
+) -> Result<CompletedRelation, String> {
     let evidence_text: String = if evidence.is_empty() {
         "没有找到同时提及这两个簇的原始日记段落。请基于它们的周次分布和主题描述，推断最可能的关系类型（如同框、时序、类比）。".to_string()
     } else {
@@ -204,54 +204,22 @@ fn call_llm_for_pair(
 
 任务：基于以上证据，判断两簇之间最具体的关系类型。
 选择范围（从最具体到最通用）：
-1. 支持 - A 的存在/演进促进了 B
-2. 冲突 - A 与 B 之间存在内在矛盾
-3. 触发 - A 的事件/变化激活了 B
-4. 演化 - A 的演进逻辑推动 B 的演进
-5. 情感补给 - A 为 B 提供情绪能量
-6. 同框 - 在同一思考时空出现，无直接互动
-7. 时序 - A 和 B 先后出现，逻辑上相关
-8. 类比 - A 和 B 用同一套隐喻框架描述
-9. 组件 - A 是 B 的组成部分或具体实例
+1. 支持
+2. 冲突
+3. 触发
+4. 演化
+5. 情感补给
+6. 同框
+7. 时序
+8. 类比
+9. 组件
 
-如果证据充分选择最具体的类型，否则选择较通用的类型。
-
-输出 JSON：
-{{
-  "relation_type": "类型",
-  "direction": "单向/双向",
-  "confidence": 0.0-1.0,
-  "reasoning": "简要推理过程"
-}}"#,
+输出 JSON：{{"relation_type":"","direction":"单向/双向","confidence":0.0,"reasoning":""}}"#,
         name_a, pair.0, name_b, pair.1, evidence_text
     );
 
-    let body = serde_json::json!({
-        "model": "deepseek-chat",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
-        "max_tokens": 1024
-    });
-
-    let resp = ureq::post("https://api.deepseek.com/v1/chat/completions")
-        .set("Authorization", &format!("Bearer {}", api_key))
-        .send_json(&body)?;
-
-    let resp_json: serde_json::Value = resp.into_json()?;
-    let content = resp_json["choices"][0]["message"]["content"]
-        .as_str()
-        .ok_or("No content")?
-        .to_string();
-
-    // Parse JSON from response
-    let json_str = if let Some(start) = content.find('{') {
-        let end = content.rfind('}').map(|i| i + 1).unwrap_or(content.len());
-        content[start..end].to_string()
-    } else {
-        content
-    };
-
-    let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap_or_default();
+    let response = client.chat(&prompt)?;
+    let parsed = extract_json(&response)?;
     let rtype = parsed["relation_type"].as_str().unwrap_or("同框").to_string();
     let dir = parsed["direction"].as_str().unwrap_or("单向").to_string();
     let conf = parsed["confidence"].as_f64().unwrap_or(0.3);
@@ -293,6 +261,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     println!("Cluster pairs to analyze: {}", pairs.len());
 
+    let client = DeepSeekClient::from_env().map_err(|e| e.to_string())?;
+
     let mut relations = Vec::new();
     let n = pairs.len();
     for (idx, (a, b)) in pairs.iter().enumerate() {
@@ -304,7 +274,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let evidence = find_cooccurrences(&raw_files, &clusters, (*a, *b), 0.08);
 
-        match call_llm_for_pair((*a, *b), &ca.1, &cb.1, &evidence) {
+        match call_llm_for_pair((*a, *b), &ca.1, &cb.1, &evidence, &client) {
             Ok(rel) => {
                 println!("  → {} (conf={}) [{} citations]", rel.relation_type, rel.confidence, evidence.len());
                 relations.push(rel);

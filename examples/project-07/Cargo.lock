@@ -212,6 +212,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "intent-llm"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ureq",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -285,10 +294,10 @@ dependencies = [
 name = "project-07"
 version = "0.1.0"
 dependencies = [
+ "intent-llm",
  "serde",
  "serde_json",
  "serde_yaml",
- "ureq",
 ]
 
 [[package]]
