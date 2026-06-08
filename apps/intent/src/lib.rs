@@ -1,6 +1,5 @@
 use std::fs;
 
-use intent_graph::tokenizer;
 use intent_llm::{extract_json, DeepSeekClient};
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +8,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 pub struct GraphData {
     cluster_descriptions: Vec<ClusterDescription>,
-    graph: Graph,
     keyword_index: Vec<KeywordEntry>,
     relation_types: Vec<RelationType>,
 }
@@ -19,26 +17,13 @@ pub struct ClusterDescription {
     pub id: u32,
     pub name: String,
     pub evolution: String,
+    pub per_week_intents: Vec<PerWeek>,
 }
 
 #[derive(Deserialize)]
-struct Graph {
-    nodes: Vec<GraphNode>,
-    edges: Vec<GraphEdge>,
-}
-
-#[derive(Deserialize, Clone, Serialize)]
-pub struct GraphNode {
-    pub id: u32,
-    pub name: String,
-}
-
-#[derive(Deserialize, Clone, Serialize)]
-pub struct GraphEdge {
-    pub source: u32,
-    pub target: u32,
-    pub relation_type: String,
-    pub category: String,
+pub struct PerWeek {
+    pub week: String,
+    pub intents: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -105,7 +90,7 @@ impl DiscoveryState {
     }
 }
 
-// --- Turn/parsed types ---
+// --- Turn/parsed types (with motif) ---
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ParsedResponse {
@@ -113,6 +98,22 @@ pub struct ParsedResponse {
     pub connections: String,
     pub exploration: String,
     pub discovery_update: DiscoveryUpdate,
+    pub motif: Option<MotifReport>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MotifReport {
+    pub motif_statement: String,
+    pub is_new_motif: bool,
+    pub variations: Vec<MotifVariation>,
+    pub motif_arc: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MotifVariation {
+    pub cluster_id: u32,
+    pub form: String,
+    pub week: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -166,19 +167,16 @@ impl ScaffoldEngine {
         Ok(Self { data, client })
     }
 
-    /// Process with multi-turn state accumulation
+    /// Process with multi-turn state accumulation and motif discovery
     pub fn process_with_state(&self, input: &str, state: &DiscoveryState) -> Result<(ParsedResponse, String), String> {
-        let matched = self.match_with_history(input, state);
-        let ids: Vec<u32> = matched.iter().map(|m| m.id).collect();
-        let ctx = self.retrieve(&ids);
-        let prompt = self.build_prompt_multi(input, &matched, &ctx, state);
+        let prompt = self.build_motif_prompt(input, state);
         let raw = self.client.chat(&prompt)?;
         let parsed = parse_response(&raw);
         Ok((parsed, raw))
     }
 
     pub fn match_with_history(&self, text: &str, state: &DiscoveryState) -> Vec<ClusterMatch> {
-        let tokens = tokenizer::tokenize(text);
+        let tokens = bigrams(text);
         let mut results: Vec<ClusterMatch> = self.data.keyword_index.iter().map(|e| {
             let common = e.keywords.iter().filter(|kw| tokens.contains(kw)).count();
             let mut score = if e.keywords.is_empty() { 0.0 } else { common as f64 / e.keywords.len() as f64 };
@@ -192,47 +190,15 @@ impl ScaffoldEngine {
         results
     }
 
-    fn retrieve(&self, ids: &[u32]) -> RetrievedContext {
-        use std::collections::HashSet;
-        let set: HashSet<u32> = ids.iter().copied().collect();
-        let mut node_ids: HashSet<u32> = set.clone();
-        for e in &self.data.graph.edges {
-            if set.contains(&e.source) || set.contains(&e.target) {
-                node_ids.insert(e.source);
-                node_ids.insert(e.target);
-            }
-        }
-        RetrievedContext {
-            nodes: self.data.graph.nodes.iter().filter(|n| node_ids.contains(&n.id)).cloned().collect(),
-            edges: self.data.graph.edges.iter().filter(|e| node_ids.contains(&e.source) && node_ids.contains(&e.target)).cloned().collect(),
-        }
-    }
-
-    fn build_prompt_multi(&self, input: &str, matched: &[ClusterMatch], ctx: &RetrievedContext, state: &DiscoveryState) -> String {
+    fn build_motif_prompt(&self, input: &str, state: &DiscoveryState) -> String {
         let history = self.build_history_summary(state);
-        let cluster_lines: Vec<String> = matched.iter().map(|m| {
-            let evo = self.data.cluster_descriptions.iter().find(|d| d.id == m.id).map(|d| d.evolution.as_str()).unwrap_or("");
-            format!("- {}（簇{}）：{} 演化轨迹：{}", m.name, m.id, evo, m.score)
-        }).collect();
-        let edge_lines: Vec<String> = ctx.edges.iter().map(|e| {
-            let src = ctx.nodes.iter().find(|n| n.id == e.source).map(|n| n.name.as_str()).unwrap_or("?");
-            let tgt = ctx.nodes.iter().find(|n| n.id == e.target).map(|n| n.name.as_str()).unwrap_or("?");
-            format!("{} → {} : {} [{}]", src, tgt, e.relation_type, e.category)
-        }).collect();
+        let all_clusters = self.format_all_clusters();
         let type_lines: Vec<String> = self.data.relation_types.iter().map(|t| format!("- {}：{}", t.name, t.description)).collect();
 
         format!(
-            r#"你是一个基于用户个人意图图谱的思考脚手架。
+            r#"你是一个基于用户个人意图图谱的母题发现引擎。
 
-## 探索历史
-
-{}
-
-## 匹配到的意图簇
-
-{}
-
-## 当前相关子图
+## 所有意图簇（共 10 个）
 
 {}
 
@@ -240,30 +206,60 @@ impl ScaffoldEngine {
 
 {}
 
+## 探索历史
+
+{}
+
 ---
 
-用户本轮输入：{}
+用户当前输入：{}
 
-任务：生成四层回复 JSON。
+---
 
-- discovery_update 中的 new_clusters / new_node_ids / new_edge_ids 必须列出本轮文本中实际引用或暗示到的簇/节点/边。
-- 如果本轮回答了某个遗留问题，将其填入 resolved_questions。
-- 示例：
+任务：分三步分析，返回 JSON。
+
+**第 1 步：提取潜在关切**——用户没明说但隐含的持续担忧是什么？
+
+**第 2 步：扫描全图**——遍历所有 10 个簇，判断哪些表达了同一个潜在关切。按相关度排序。
+
+**第 3 步：生成母题报告**——如果 2+ 簇表达了同一关切，生成 motif 报告；否则标记 is_new_motif=true。
+
 {{
-  "positioning": "...",
-  "connections": "...",
-  "exploration": "...",
+  "positioning": "当前输入在全图中的定位",
+  "connections": "与已有簇和母题的关系",
+  "exploration": "探索方向",
   "discovery_update": {{
-    "new_clusters": [1, 5],
-    "new_node_ids": [1, 5, 2],
-    "new_edge_ids": [14],
-    "resolved_questions": ["问题A"],
-    "new_open_questions": ["新问题1"],
-    "new_insights": ["关键洞察1"]
+    "new_clusters": [],
+    "new_node_ids": [],
+    "new_edge_ids": [],
+    "resolved_questions": [],
+    "new_open_questions": [],
+    "new_insights": []
+  }},
+  "motif": {{
+    "motif_statement": "关切断言",
+    "is_new_motif": true/false,
+    "variations": [
+      {{"cluster_id": 1, "form": "具体表现形态", "week": "W23"}}
+    ],
+    "motif_arc": "跨簇跨周的演化轨迹描述"
   }}
 }}"#,
-            history, cluster_lines.join("\n"), edge_lines.join("\n"), type_lines.join("\n"), input
+            all_clusters, type_lines.join("\n"), history, input
         )
+    }
+
+    fn format_all_clusters(&self) -> String {
+        let mut lines = Vec::new();
+        for c in &self.data.cluster_descriptions {
+            lines.push(format!("--- 簇{}：{}（{}）---", c.id, c.name, c.evolution));
+            for pw in &c.per_week_intents {
+                for intent in &pw.intents {
+                    lines.push(format!("  {}: {}", pw.week, intent));
+                }
+            }
+        }
+        lines.join("\n")
     }
 
     fn build_history_summary(&self, state: &DiscoveryState) -> String {
@@ -317,16 +313,17 @@ impl SessionManager {
 // --- Helpers ---
 
 fn parse_response(raw: &str) -> ParsedResponse {
-    let default = ParsedResponse {
+    let default = || ParsedResponse {
         positioning: String::new(), connections: String::new(), exploration: String::new(),
         discovery_update: DiscoveryUpdate {
             new_clusters: Vec::new(), new_node_ids: Vec::new(), new_edge_ids: Vec::new(),
             resolved_questions: Vec::new(), new_open_questions: Vec::new(), new_insights: Vec::new(),
         },
+        motif: None,
     };
     let v = match extract_json(raw) {
         Ok(v) => v,
-        Err(_) => return default,
+        Err(_) => return default(),
     };
     ParsedResponse {
         positioning: v["positioning"].as_str().unwrap_or("").to_string(),
@@ -340,7 +337,28 @@ fn parse_response(raw: &str) -> ParsedResponse {
             new_open_questions: extract_string_array(&v["discovery_update"]["new_open_questions"]),
             new_insights: extract_string_array(&v["discovery_update"]["new_insights"]),
         },
+        motif: extract_motif(&v["motif"]),
     }
+}
+
+fn extract_motif(val: &serde_json::Value) -> Option<MotifReport> {
+    if val.is_null() || !val.is_object() { return None; }
+    let statement = val["motif_statement"].as_str().unwrap_or("").to_string();
+    if statement.is_empty() { return None; }
+    Some(MotifReport {
+        motif_statement: statement,
+        is_new_motif: val["is_new_motif"].as_bool().unwrap_or(true),
+        variations: val["variations"].as_array().map(|arr| {
+            arr.iter().filter_map(|item| {
+                Some(MotifVariation {
+                    cluster_id: item["cluster_id"].as_u64()? as u32,
+                    form: item["form"].as_str()?.to_string(),
+                    week: item["week"].as_str()?.to_string(),
+                })
+            }).collect()
+        }).unwrap_or_default(),
+        motif_arc: val["motif_arc"].as_str().unwrap_or("").to_string(),
+    })
 }
 
 fn extract_u32_array(val: &serde_json::Value) -> Vec<u32> {
@@ -351,14 +369,10 @@ fn extract_string_array(val: &serde_json::Value) -> Vec<String> {
     val.as_array().map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default()
 }
 
-fn ts() -> String {
-    format!("{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())
+fn bigrams(text: &str) -> Vec<String> {
+    text.chars().collect::<Vec<_>>().windows(2).map(|w| w.iter().collect()).collect()
 }
 
-// --- Re-export internal types needed by session reader tools outside this crate ---
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct RetrievedContext {
-    pub nodes: Vec<GraphNode>,
-    pub edges: Vec<GraphEdge>,
+fn ts() -> String {
+    format!("{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())
 }

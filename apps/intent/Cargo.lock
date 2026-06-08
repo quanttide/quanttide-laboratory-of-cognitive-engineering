@@ -330,7 +330,6 @@ dependencies = [
 name = "qtcloud-think-intent"
 version = "0.1.0"
 dependencies = [
- "intent-graph",
  "intent-llm",
  "serde",
  "serde_json",

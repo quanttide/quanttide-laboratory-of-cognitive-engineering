@@ -58,6 +58,21 @@ fn main() -> Result<(), String> {
         if !parsed.positioning.is_empty() { println!("📍 {}", parsed.positioning); }
         if !parsed.connections.is_empty() { println!("🔗 {}", parsed.connections); }
         if !parsed.exploration.is_empty() { println!("💡 {}", parsed.exploration); }
+
+        if let Some(ref m) = parsed.motif {
+            if m.is_new_motif {
+                println!("🆕 新母题：{}", m.motif_statement);
+            } else {
+                println!("🎵 母题：{}", m.motif_statement);
+                for v in &m.variations {
+                    println!("   簇{} ({}): {}", v.cluster_id, v.week, v.form);
+                }
+            }
+            if !m.motif_arc.is_empty() {
+                println!("   演化弧：{}", m.motif_arc);
+            }
+        }
+
         if has_new {
             println!("🆕 簇: {:?}  边: {:?}  洞察: {}",
                 parsed.discovery_update.new_clusters,
@@ -80,7 +95,8 @@ fn main() -> Result<(), String> {
     let clusters: Vec<u32> = session.turns.iter().flat_map(|t| t.parsed.discovery_update.new_clusters.clone()).collect();
     let edges: Vec<u32> = session.turns.iter().flat_map(|t| t.parsed.discovery_update.new_edge_ids.clone()).collect();
     let insights: usize = session.turns.iter().flat_map(|t| t.parsed.discovery_update.new_insights.iter()).count();
-    println!("探索: {} 簇, {} 边, {} 洞察", clusters.len(), edges.len(), insights);
+    let motifs: usize = session.turns.iter().filter(|t| t.parsed.motif.is_some()).count();
+    println!("探索: {} 簇, {} 边, {} 洞察, {} 母题", clusters.len(), edges.len(), insights, motifs);
 
     Ok(())
 }
