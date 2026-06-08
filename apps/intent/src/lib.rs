@@ -1,5 +1,6 @@
 use std::fs;
 
+use intent_graph::tokenizer;
 use intent_llm::{extract_json, DeepSeekClient};
 use serde::{Deserialize, Serialize};
 
@@ -177,7 +178,7 @@ impl ScaffoldEngine {
     }
 
     pub fn match_with_history(&self, text: &str, state: &DiscoveryState) -> Vec<ClusterMatch> {
-        let tokens = bigrams(text);
+        let tokens = tokenizer::tokenize(text);
         let mut results: Vec<ClusterMatch> = self.data.keyword_index.iter().map(|e| {
             let common = e.keywords.iter().filter(|kw| tokens.contains(kw)).count();
             let mut score = if e.keywords.is_empty() { 0.0 } else { common as f64 / e.keywords.len() as f64 };
@@ -314,10 +315,6 @@ impl SessionManager {
 }
 
 // --- Helpers ---
-
-fn bigrams(text: &str) -> Vec<String> {
-    text.chars().collect::<Vec<_>>().windows(2).map(|w| w.iter().collect()).collect()
-}
 
 fn parse_response(raw: &str) -> ParsedResponse {
     let default = ParsedResponse {
