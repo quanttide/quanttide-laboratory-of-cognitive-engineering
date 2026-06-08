@@ -62,7 +62,7 @@
 **备注**：{与其他意图的关系线索、演变趋势等}
 ```
 
-**实际输出**：详见 `outputs/task-1.2-intent-identification.md`（已审核通过），共识别 14 个意图
+**实际输出**：详见 `outputs/task-1.2-intent-identification.md`（已审核通过），共识别 13 个意图
 
 ### 1.3 意图关系建模
 
@@ -80,7 +80,7 @@
 2. 以"元意图"为中心组织关系图——识别哪些意图是更根本的驱动因素
 3. 标注关系强度（强/中/弱）
 
-**输出**：`outputs/task-1.3-intent-relationship.md`，包含：
+**输出**：`outputs/task-1.3-intent-relationship.md`（已执行），包含：
 - 关系图总览（Mermaid 图）
 - 按意图分类的关系详情（每个意图列出其关联意图及关系类型）
 - 元意图分析（识别最核心的 2-3 个意图及其辐射范围）
