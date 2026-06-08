@@ -43,7 +43,7 @@
 3. 匹配度 > 阈值则判定为该簇
 4. 输出：匹配到的簇列表 + 关键词证据
 
-**输出**：`scripts/approach_a.py`
+**输出**：`src/approach_a.rs`
 
 ### 3.3 方案B：图谱推理（用图）
 
@@ -57,7 +57,7 @@
 3. **多跳路径**：BFS 遍历 2 跳，输出推理路径（node1 →edge→ node2 →edge→ node3）
 4. **冲突检测**：检查匹配节点之间是否存在冲突边或间接冲突路径
 
-**输出**：`scripts/approach_b.py`
+**输出**：`src/approach_b.rs`
 
 ### 3.4 对比执行
 
@@ -70,8 +70,8 @@
 
 **执行**：
 ```bash
-python scripts/approach_a.py < test.txt  # 输出 JSON A
-python scripts/approach_b.py < test.txt  # 输出 JSON B
+cargo run --bin approach_a < test.txt  # 输出 JSON A
+cargo run --bin approach_b < test.txt  # 输出 JSON B
 ```
 
 **输出**：`outputs/results-a.json` + `outputs/results-b.json`
