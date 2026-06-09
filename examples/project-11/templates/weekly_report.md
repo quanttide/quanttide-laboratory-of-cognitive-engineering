@@ -67,20 +67,22 @@
 
 ---
 
-## 跨情境母题
+## 跨情境心智模型
 
-{{#motifs}}
+{{#mental_models}}
 
-### {{theme}}
+### {{name}}
 
-**涉及**：{{situations}}
+**定义**：{{definition}}
 
-**证据链**：{{evidence_chain}}
+**适用情境**：{{situations}}
 
-**启示**：{{implication}}
+**表现模式**：{{behavior_pattern}}
+
+**预测**：{{prediction}}
 
 ---
-{{/motifs}}
+{{/mental_models}}
 
 ---
 
