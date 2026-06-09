@@ -1119,7 +1119,7 @@ impl ReportGenerator {
 每个 schema 格式：
 {{
   "id": "uuid",
-  "label": "简短名称（不加'心智模型'后缀）",
+  "label": "名称（≤8字，像一个名字，不加'心智模型'后缀）",
   "entities": [{{"实体名": ["属性1", "属性2"]}}],
   "causals": [{{"condition": "条件", "outcome": "结果"}}],
   "boundaries": ["边界1", "边界2"],
