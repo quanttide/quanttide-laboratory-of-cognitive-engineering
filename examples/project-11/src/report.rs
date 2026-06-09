@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::models::Situation;
+use crate::models::{Schema, Situation, WeekData};
 use crate::query::QueryEngine;
 
 pub struct ReportGenerator {
@@ -127,24 +127,25 @@ impl ReportGenerator {
         dir
     }
 
-    /// Generate a structured weekly report (six-feature template)
+    /// Generate a gallery-format report with LLM synthesis + data fallback
     pub fn report(&self, week: &str) -> Result<String, String> {
         let data = self.engine.week(week)?;
-        let registry = self.engine.registry().ok();
-        let label_map: std::collections::HashMap<String, String> = registry
-            .unwrap_or_default()
+        let registry = self.engine.registry().ok().unwrap_or_default();
+        let category = self.engine.loader.load_category().ok().unwrap_or_default();
+        // Use registry first, fall back to category for label map
+        let mut label_map: std::collections::HashMap<String, String> = registry
             .into_iter()
             .map(|e| (e.name, e.label))
             .collect();
-        let category = self.engine.loader.load_category().ok();
+        if label_map.is_empty() {
+            label_map = category.iter().map(|e| (e.name.clone(), e.label.clone())).collect();
+        }
         let category_order: std::collections::HashMap<String, usize> = category
-            .unwrap_or_default()
             .into_iter()
             .enumerate()
             .map(|(i, e)| (e.name, i))
             .collect();
 
-        // Sort situations by category order
         let mut sorted_sits = data.situations.clone();
         sorted_sits.sort_by(|a, b| {
             let ai = category_order.get(&a.name).copied().unwrap_or(usize::MAX);
@@ -152,198 +153,279 @@ impl ReportGenerator {
             ai.cmp(&bi)
         });
 
-        let mut out = String::new();
-        out.push_str(&format!("# 情境周报：{}\n\n", week));
+        let schemas = self.engine.loader.load_schemas(week).ok().unwrap_or_default();
 
-        // — Core Judgment —
-        out.push_str("## 核心判断\n\n");
-        out.push_str("（待 LLM 填充）\n\n");
+        // Try LLM report; fall back to data-only
+        let result = self.llm_gallery_report(week, &data, &label_map, &sorted_sits, &schemas);
+        let report = match result {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("LLM report failed ({}), generating data-only report", e);
+                self.data_gallery_report(week, &data, &label_map, &sorted_sits, &schemas)
+            }
+        };
 
-        // — Actions —
-        out.push_str("## 行动建议\n\n");
-        out.push_str("| 优先级 | 行动项 | 负责人 | 时限 | 预期效果 | 风险 |\n");
-        out.push_str("|--------|--------|-------|------|---------|------|\n");
-        out.push_str("| （待生成） | | | | | |\n\n");
+        let report_path = self.reports_dir(week).join("report.md");
+        fs::write(&report_path, &report).ok();
+        println!("Report saved to: {:?}", report_path);
+        Ok(report)
+    }
 
-        // — Panorama —
-        out.push_str("## 全景概览\n\n");
-        let total = data.intentions.len();
-        let high_p = data.intentions.iter().filter(|i| i.priority.name == "high").count();
-        let high_r = data.intentions.iter().filter(|i| i.risk.name == "high").count();
-        let top = data.intentions.iter().filter(|i| i.level.name == "top").count();
-        let bottom = data.intentions.iter().filter(|i| i.level.name == "bottom").count();
-        out.push_str(&format!(
-            "{} 个情境，{} 条意向（高优先 {}，高风 {}，顶层 {}，底层 {}）\n\n",
-            sorted_sits.len(), total, high_p, high_r, top, bottom
-        ));
-
-        out.push_str("| 情境 | 意向数 | 高优先级 | 高风险 | 顶层 | 底层 |\n");
-        out.push_str("|------|--------|---------|-------|------|------|\n");
-        for sit in &sorted_sits {
-            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            let intents = data.intention_map.get(&sit.name);
-            let c = intents.map(|v| v.len()).unwrap_or(0);
-            let hp = intents.map(|v| v.iter().filter(|i| i.priority.name == "high").count()).unwrap_or(0);
-            let hr = intents.map(|v| v.iter().filter(|i| i.risk.name == "high").count()).unwrap_or(0);
-            let t = intents.map(|v| v.iter().filter(|i| i.level.name == "top").count()).unwrap_or(0);
-            let b = intents.map(|v| v.iter().filter(|i| i.level.name == "bottom").count()).unwrap_or(0);
-            out.push_str(&format!("| {} | {} | {} | {} | {} | {} |\n", label, c, hp, hr, t, b));
+    /// Gallery-format report using LLM synthesis
+    fn llm_gallery_report(
+        &self,
+        week: &str,
+        data: &WeekData,
+        label_map: &std::collections::HashMap<String, String>,
+        sorted_sits: &[Situation],
+        schemas: &[Schema],
+    ) -> Result<String, String> {
+        let cache_path = self.reports_dir(week).join("gallery-report.json");
+        if let Ok(content) = fs::read_to_string(&cache_path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                eprintln!("(loaded cached gallery report)");
+                return Self::render_gallery_report(week, &json, label_map);
+            }
         }
-        out.push('\n');
 
-        // — Per-situation analysis —
-        out.push_str("## 逐情境分析\n\n");
-        for sit in &sorted_sits {
+        let client = crate::llm::DeepSeekClient::from_env()?;
+
+        // Build domain descriptions for prompt
+        let mut domain_text = String::new();
+        for sit in sorted_sits {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            out.push_str(&format!("### {}（{}）\n\n", label, sit.name));
-            out.push_str(&format!("**演化**：{}\n\n", sit.content.dynamics));
-            out.push_str(&format!("**现象**：{}\n\n", sit.content.ecology));
-            out.push_str(&format!("**判断**：{}\n\n", sit.content.frame));
+            let intents = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
+            let schema = schemas.iter().find(|s| s.name == sit.name);
 
-            if let Some(intents) = data.intention_map.get(&sit.name) {
-                out.push_str("| 关键意向 | 优先级 | 风险 | 层级 | 触发 |\n");
-                out.push_str("|---------|--------|------|------|------|\n");
-                for i in intents {
-                    out.push_str(&format!(
-                        "| {} | {} | {} | {} | {} |\n",
+            domain_text.push_str(&format!("## {} ({})\n", label, sit.name));
+            domain_text.push_str(&format!("agenda: {}\n", sit.content.agenda));
+            domain_text.push_str(&format!("ecology: {}\n", sit.content.ecology));
+            domain_text.push_str(&format!("frame: {}\n", sit.content.frame));
+            domain_text.push_str(&format!("dynamics: {}\n", sit.content.dynamics));
+            if let Some(s) = schema {
+                domain_text.push_str(&format!("schema_usage: {}\n", s.content.usage));
+                if !s.content.causals.is_empty() {
+                    domain_text.push_str("causals:\n");
+                    for c in &s.content.causals {
+                        domain_text.push_str(&format!("  - IF {} THEN {}\n", c.condition, c.outcome));
+                    }
+                }
+            }
+            if !intents.is_empty() {
+                domain_text.push_str("intentions:\n");
+                for i in &intents {
+                    domain_text.push_str(&format!(
+                        "  - {} [priority={}, risk={}, level={}, trigger={}]\n",
                         i.title, i.priority.label, i.risk.label, i.level.label, i.trigger.label
                     ));
                 }
             }
-            out.push_str("\n---\n\n");
+            domain_text.push('\n');
         }
 
-        // — Relations: merge situation + intention —
-        let mut has_relations = false;
-        let rel_path = self.reports_dir(week).join("relations.json");
-        let irel_path = self.reports_dir(week).join("intention-relations.json");
+        // Collect domain names for pair generation
+        let domain_names: Vec<String> = sorted_sits.iter()
+            .map(|s| label_map.get(&s.name).cloned().unwrap_or_else(|| s.name.clone()))
+            .collect();
 
-        // Build index map for intention relations: idx → title
-        let mut idx_map: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
-        if irel_path.exists() {
-            let mut i = 0usize;
-            for (_, intents) in &data.intention_map {
-                for intent in intents {
-                    idx_map.insert(i, intent.title.clone());
-                    i += 1;
-                }
+        let prompt = format!(
+            r#"你是一个认知工程报告分析师。基于以下一周的情境数据，生成一份结构化的认知工程报告。
+
+报告格式要求（JSON）：
+{{
+  "summary": "一周摘要（3-5句，点出主线、变化、关键信号）",
+  "domains": [
+    {{
+      "name": "情境标识",
+      "schema_mining": "图式挖掘：一句话提炼该领域的认知模式/心智模型（从 frame 和 schema 中提取核心因果逻辑和边界条件）",
+      "situation_awareness": "情境意识：一句话描述当前发生了什么（从 agenda 和 ecology 中提炼）",
+      "intention_recognition": "意图识别：一句话概括该领域的关键意图及优先级/风险（列出顶层意图或最高优意图）"
+    }}
+  ],
+  "relations": [
+    {{
+      "source": "情境A标识",
+      "target": "情境B标识",
+      "schema_association": "图式关联：两个领域的认知模式之间的关系",
+      "situation_association": "情境关联：两个领域当前状态之间的关系",
+      "intention_association": "意图关联：两个领域意图之间的张力或协作关系"
+    }}
+  ],
+  "appendix_items": [
+    "待决策项、跨领域风险等非标准内容，每条一句话"
+  ]
+}}
+
+图式关联、情境关联、意图关联各写一句话。
+关系对数量：不要超过所有领域两两组合数的一半，只选最有意义的关系。
+
+周次：{}
+
+领域列表（按此顺序排序）：{}
+
+以下是各领域数据：
+{}
+
+只输出JSON，不要额外文字。"#,
+            week,
+            domain_names.join(", "),
+            domain_text,
+        );
+
+        let raw = client.chat(&prompt)?;
+        let json = crate::llm::extract_json(&raw)?;
+
+        if let Ok(content) = serde_json::to_string_pretty(&json) {
+            fs::write(&cache_path, &content).ok();
+            eprintln!("(cached gallery report to {:?})", cache_path);
+        }
+
+        Self::render_gallery_report(week, &json, label_map)
+    }
+
+    /// Render LLM JSON into gallery-format markdown
+    fn render_gallery_report(
+        week: &str,
+        json: &serde_json::Value,
+        label_map: &std::collections::HashMap<String, String>,
+    ) -> Result<String, String> {
+        let mut out = String::new();
+        out.push_str(&format!("# {} 认知工程报告\n\n", week));
+
+        // Summary
+        let summary = json["summary"].as_str().unwrap_or("（待生成）");
+        out.push_str("## 摘要\n\n");
+        out.push_str(summary);
+        out.push_str("\n\n");
+
+        // Domains
+        out.push_str("## 领域描述\n\n");
+        if let Some(domains) = json["domains"].as_array() {
+            for d in domains {
+                let name = d["name"].as_str().unwrap_or("?");
+                let label = label_map.get(name).cloned().unwrap_or_else(|| name.to_string());
+                let schema = d["schema_mining"].as_str().unwrap_or("（待生成）");
+                let awareness = d["situation_awareness"].as_str().unwrap_or("（待生成）");
+                let intention = d["intention_recognition"].as_str().unwrap_or("（待生成）");
+
+                out.push_str(&format!("### {}\n\n", label));
+                out.push_str(&format!("- 图式挖掘：{}\n", schema));
+                out.push_str(&format!("- 情境意识：{}\n", awareness));
+                out.push_str(&format!("- 意图识别：{}\n\n", intention));
             }
         }
 
-        let rel_ok = rel_path.exists();
-        let irel_ok = irel_path.exists();
+        // Relations
+        out.push_str("## 领域关系\n\n");
+        if let Some(relations) = json["relations"].as_array() {
+            if !relations.is_empty() {
+                for r in relations {
+                    let source = r["source"].as_str().unwrap_or("?");
+                    let target = r["target"].as_str().unwrap_or("?");
+                    let slabel = label_map.get(source).cloned().unwrap_or_else(|| source.to_string());
+                    let tlabel = label_map.get(target).cloned().unwrap_or_else(|| target.to_string());
+                    let sa = r["schema_association"].as_str().unwrap_or("");
+                    let sia = r["situation_association"].as_str().unwrap_or("");
+                    let ia = r["intention_association"].as_str().unwrap_or("");
 
-        if rel_ok || irel_ok {
-            has_relations = true;
-            out.push_str("## 关系分析\n\n");
-
-            if rel_ok {
-                if let Ok(content) = fs::read_to_string(&rel_path) {
-                    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
-                        out.push_str("### 情境层\n\n");
-                        for rel in &arr {
-                            let s = rel["source"].as_str().unwrap_or("?");
-                            let t = rel["target"].as_str().unwrap_or("?");
-                            let r = rel["type"].as_str().unwrap_or("?");
-                            let st = rel["strength"].as_str().unwrap_or("?");
-                            let l = rel["logic"].as_str().unwrap_or("");
-                            out.push_str(&format!("- **{}** ↔ **{}**：{}（{}）\n  {}\n", s, t, r, st, l));
-                        }
-                        out.push('\n');
+                    out.push_str(&format!("### {} vs {}\n\n", slabel, tlabel));
+                    if !sa.is_empty() {
+                        out.push_str(&format!("- 图式关联：{}\n", sa));
                     }
-                }
-            }
-
-            if irel_ok {
-                if let Ok(content) = fs::read_to_string(&irel_path) {
-                    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
-                        out.push_str("### 意图层\n\n");
-                        for rel in &arr {
-                            let si = rel["source"].as_u64().unwrap_or(999) as usize;
-                            let ti = rel["target"].as_u64().unwrap_or(999) as usize;
-                            let stitle = idx_map.get(&si).map(|s| s.as_str()).unwrap_or("?");
-                            let ttitle = idx_map.get(&ti).map(|s| s.as_str()).unwrap_or("?");
-                            let rtype = rel["type"].as_str().unwrap_or("?");
-                            let logic = rel["logic"].as_str().unwrap_or("");
-                            out.push_str(&format!("- **{}** → **{}**：{} — {}\n", stitle, ttitle, rtype, logic));
-                        }
-                        out.push('\n');
+                    if !sia.is_empty() {
+                        out.push_str(&format!("- 情境关联：{}\n", sia));
                     }
+                    if !ia.is_empty() {
+                        out.push_str(&format!("- 意图关联：{}\n", ia));
+                    }
+                    out.push('\n');
                 }
+            } else {
+                out.push_str("（未发现显著关系）\n\n");
             }
+        } else {
+            out.push_str("（未发现显著关系）\n\n");
         }
 
-        if !has_relations {
-            out.push_str("## 关系分析\n\n（运行 `relate` 和 `ri` 生成）\n\n");
-        }
-
-        // — Drift from previous week —
-        let prev_week = self.previous_week(week);
-        if let Some(ref pw) = prev_week {
-            out.push_str("## 与前周对比\n\n");
-            if let Ok(prev_data) = self.engine.week(pw) {
-                for sit in &sorted_sits {
-                    let prev = prev_data.intention_map.get(&sit.name).cloned().unwrap_or_default();
-                    let curr = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
-                    if prev.is_empty() && curr.is_empty() { continue; }
-                    let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-                    let pc = prev.len();
-                    let cc = curr.len();
-                    if pc != cc {
-                        let diff = if cc > pc { format!("+{}", cc - pc) } else { format!("-{}", pc - cc) };
-                        out.push_str(&format!("- **{}**：{} → {}（{}）\n", label, pc, cc, diff));
-                    }
-                    // Check priority drift for matched titles
-                    for a in &prev {
-                        for b in &curr {
-                            if a.title == b.title && a.priority.name != b.priority.name {
-                                out.push_str(&format!("  - 「{}」优先级：{} → {}\n", a.title, a.priority.label, b.priority.label));
-                            }
-                        }
+        // Appendix
+        if let Some(items) = json["appendix_items"].as_array() {
+            if !items.is_empty() {
+                out.push_str("## 附录\n\n");
+                for item in items {
+                    let text = item.as_str().unwrap_or("");
+                    if !text.is_empty() {
+                        out.push_str(&format!("- {}\n", text));
                     }
                 }
                 out.push('\n');
             }
-        } else {
-            out.push_str("## 与前周对比\n\n");
-            out.push_str("（无前周数据）\n\n");
         }
-
-        // — Mental Models (schemas from gallery) —
-        out.push_str("## 跨情境心智模型\n\n");
-        match self.engine.loader.load_schemas(week) {
-            Ok(schemas) => {
-                for s in &schemas {
-                    out.push_str(&format!("### {}\n\n", s.label));
-                    if !s.content.usage.is_empty() {
-                        out.push_str(&format!("{}\n\n", s.content.usage));
-                    }
-                    for c in &s.content.causals {
-                        out.push_str(&format!("- IF {} THEN {}\n", c.condition, c.outcome));
-                    }
-                    for b in &s.content.biases {
-                        out.push_str(&format!("- 信念：{}（事实：{}）\n", b.belief, b.fact));
-                    }
-                    for b in &s.content.boundaries {
-                        out.push_str(&format!("- 边界：{}\n", b));
-                    }
-                    out.push('\n');
-                }
-                if schemas.is_empty() {
-                    out.push_str("（暂无心智模型数据）\n\n");
-                }
-            }
-            Err(e) => {
-                out.push_str(&format!("（加载失败：{}）\n\n", e));
-            }
-        }
-
-        // Save
-        let report_path = self.reports_dir(week).join("report.md");
-        fs::write(&report_path, &out).ok();
-        println!("Report saved to: {:?}", report_path);
 
         Ok(out)
+    }
+
+    /// Data-only fallback for gallery format (no LLM)
+    fn data_gallery_report(
+        &self,
+        week: &str,
+        data: &WeekData,
+        label_map: &std::collections::HashMap<String, String>,
+        sorted_sits: &[Situation],
+        schemas: &[Schema],
+    ) -> String {
+        let mut out = String::new();
+        out.push_str(&format!("# {} 认知工程报告\n\n", week));
+
+        // Summary (computed)
+        let total_intents = data.intentions.len();
+        let high_p = data.intentions.iter().filter(|i| i.priority.name == "high").count();
+        let high_r = data.intentions.iter().filter(|i| i.risk.name == "high").count();
+        out.push_str("## 摘要\n\n");
+        out.push_str(&format!(
+            "本周共 {} 个领域，{} 条意图（高优先级 {}，高风险 {}）。\n\n",
+            sorted_sits.len(), total_intents, high_p, high_r,
+        ));
+
+        // Domains
+        out.push_str("## 领域描述\n\n");
+        for sit in sorted_sits {
+            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
+            let intents = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
+            let schema = schemas.iter().find(|s| s.name == sit.name);
+
+            // Schema mining: use schema usage or frame
+            let schema_text = schema
+                .and_then(|s| if s.content.usage.is_empty() { None } else { Some(s.content.usage.as_str()) })
+                .unwrap_or(&sit.content.frame);
+
+            // Situation awareness: agenda + ecology
+            let awareness_text = format!("议程：{}。现状：{}", sit.content.agenda, sit.content.ecology);
+
+            // Intention recognition
+            let intention_text = if intents.is_empty() {
+                "（无明确意图数据）".to_string()
+            } else {
+                intents.iter()
+                    .map(|i| format!("{}（{}优先级，{}风险）", i.title, i.priority.label, i.risk.label))
+                    .collect::<Vec<_>>()
+                    .join("；")
+            };
+
+            out.push_str(&format!("### {}\n\n", label));
+            out.push_str(&format!("- 图式挖掘：{}\n", schema_text));
+            out.push_str(&format!("- 情境意识：{}\n", awareness_text));
+            out.push_str(&format!("- 意图识别：{}\n\n", intention_text));
+        }
+
+        // Relations (placeholder without LLM)
+        out.push_str("## 领域关系\n\n");
+        out.push_str("（运行 LLM 报告生成以获取关系分析）\n\n");
+
+        // Appendix
+        out.push_str("## 附录\n\n");
+        out.push_str("（运行 LLM 报告生成以获取待决策项和跨领域风险）\n\n");
+
+        out
     }
 
     /// Diff two weeks: show which situations appear/disappear/change

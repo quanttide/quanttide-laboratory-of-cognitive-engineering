@@ -75,6 +75,7 @@ pub struct Relation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Schema {
     pub id: String,
+    pub name: String,
     pub label: String,
     #[serde(default)]
     pub content: SchemaContent,
