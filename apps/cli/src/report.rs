@@ -462,10 +462,10 @@ impl ReportGenerator {
 
                 // Score how connected these two domains are
                 let a_entities: Vec<String> = sa.map(|s| s.content.entities.iter()
-                    .filter_map(|e| e.get("name").and_then(|v| v.as_str()).map(String::from))
+                    .map(|e| e.name.clone())
                     .collect()).unwrap_or_default();
                 let b_entities: Vec<String> = sb.map(|s| s.content.entities.iter()
-                    .filter_map(|e| e.get("name").and_then(|v| v.as_str()).map(String::from))
+                    .map(|e| e.name.clone())
                     .collect()).unwrap_or_default();
                 let shared_entities: Vec<&str> = a_entities.iter().filter_map(|e|
                     if b_entities.contains(e) { Some(e.as_str()) } else { None }
@@ -557,9 +557,7 @@ impl ReportGenerator {
                 let schema = schemas.iter().find(|s| s.name == sit.name);
                 if let Some(s) = schema {
                     for e in &s.content.entities {
-                        if let Some(name) = e.get("name").and_then(|v| v.as_str()) {
-                            map.entry(name.to_string()).or_default().push(label.clone());
-                        }
+                        map.entry(e.name.clone()).or_default().push(label.clone());
                     }
                 }
             }

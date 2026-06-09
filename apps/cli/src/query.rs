@@ -98,7 +98,7 @@ impl QueryEngine {
             if let Ok(data) = self.loader.load_week(w) {
                 for (sn, intents) in &data.intention_map {
                     for i in intents {
-                        if i.id == id {
+                        if i.id.to_string() == id {
                             return Ok(Some((w.clone(), sn.clone(), i.clone())));
                         }
                     }

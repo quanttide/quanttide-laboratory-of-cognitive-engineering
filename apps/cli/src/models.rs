@@ -1,51 +1,12 @@
-use serde::{Deserialize, Serialize};
-
-/// A single week's situation file (e.g. 2026-W23/org.yaml)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Situation {
-    pub id: String,
-    pub name: String,
-    pub label: String,
-    pub content: SituationContent,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SituationContent {
-    pub agenda: String,
-    pub ecology: String,
-    pub frame: String,
-    pub dynamics: String,
-}
-
-/// A single intention entry (list root in intention YAML)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Intention {
-    pub id: String,
-    pub title: String,
-    pub description: String,
-    pub motivation: String,
-    pub agent: Labelled,
-    pub level: LabelledDescription,
-    pub priority: LabelledDescription,
-    pub trigger: LabelledDescription,
-    pub risk: LabelledDescription,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Labelled {
-    pub name: String,
-    pub label: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LabelledDescription {
-    pub name: String,
-    pub label: String,
-    pub description: String,
-}
+pub use quanttide_think::{
+    thought::Thought,
+    intention::{Intention, Agent, Level, Priority, Trigger, Risk},
+    situation::{Situation, SituationContent},
+    schema::{Schema, SchemaContent, Entity, Causal, KeyValue, Mapping, Bias},
+};
 
 /// Registry entry mapping name to label
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RegistryEntry {
     pub name: String,
     pub label: String,
@@ -62,7 +23,7 @@ pub struct WeekData {
 }
 
 /// Relationship between two situations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Relation {
     pub source: String,
     pub target: String,
@@ -71,61 +32,8 @@ pub struct Relation {
     pub logic: String,
 }
 
-/// Schema: fine-grained mental model
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Schema {
-    pub id: String,
-    pub name: String,
-    pub label: String,
-    #[serde(default)]
-    pub content: SchemaContent,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SchemaContent {
-    #[serde(default)]
-    pub usage: String,
-    #[serde(default)]
-    pub entities: Vec<serde_yaml::Value>,
-    #[serde(default)]
-    pub causals: Vec<Causal>,
-    #[serde(default)]
-    pub boundaries: Vec<String>,
-    #[serde(default)]
-    pub properties: Vec<KeyValue>,
-    #[serde(default)]
-    pub mappings: Vec<IntentMapping>,
-    #[serde(default)]
-    pub biases: Vec<Bias>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KeyValue {
-    pub key: String,
-    pub value: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Causal {
-    pub condition: String,
-    pub outcome: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IntentMapping {
-    pub intent: String,
-    pub action: serde_yaml::Value,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Bias {
-    pub id: String,
-    pub belief: String,
-    pub fact: String,
-}
-
 /// Mental model identified across situations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MentalModel {
     pub name: String,
     pub definition: String,
