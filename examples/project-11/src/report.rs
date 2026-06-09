@@ -300,13 +300,13 @@ impl ReportGenerator {
             Ok(schemas) => {
                 for s in &schemas {
                     out.push_str(&format!("### {}\n\n", s.label));
-                    for c in &s.causals {
+                    for c in &s.content.causals {
                         out.push_str(&format!("- IF {} THEN {}\n", c.condition, c.outcome));
                     }
-                    for b in &s.biases {
+                    for b in &s.content.biases {
                         out.push_str(&format!("- 信念：{}（事实：{}）\n", b.belief, b.fact));
                     }
-                    for b in &s.boundaries {
+                    for b in &s.content.boundaries {
                         out.push_str(&format!("- 边界：{}\n", b));
                     }
                     out.push('\n');
@@ -971,27 +971,28 @@ impl ReportGenerator {
             out.push_str(&format!("## {}\n\n", s.label));
             out.push_str(&format!("**ID**: {}\n\n", s.id));
 
-            if !s.entities.is_empty() {
+            let c = &s.content;
+            if !c.entities.is_empty() {
                 out.push_str("### Entities\n\n");
-                for e in &s.entities {
+                for e in &c.entities {
                     out.push_str(&format!("- {}\n", serde_yaml::to_string(e).unwrap_or_default()));
                 }
             }
-            if !s.causals.is_empty() {
+            if !c.causals.is_empty() {
                 out.push_str("### Causals\n\n");
-                for c in &s.causals {
-                    out.push_str(&format!("- IF {} THEN {}\n", c.condition, c.outcome));
+                for f in &c.causals {
+                    out.push_str(&format!("- IF {} THEN {}\n", f.condition, f.outcome));
                 }
             }
-            if !s.boundaries.is_empty() {
+            if !c.boundaries.is_empty() {
                 out.push_str("### Boundaries\n\n");
-                for b in &s.boundaries {
+                for b in &c.boundaries {
                     out.push_str(&format!("- {}\n", b));
                 }
             }
-            if !s.biases.is_empty() {
+            if !c.biases.is_empty() {
                 out.push_str("### Biases\n\n");
-                for b in &s.biases {
+                for b in &c.biases {
                     out.push_str(&format!("- **{}**（事实：{}）\n", b.belief, b.fact));
                 }
             }

@@ -77,6 +77,14 @@ pub struct Schema {
     pub id: String,
     pub label: String,
     #[serde(default)]
+    pub content: SchemaContent,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SchemaContent {
+    #[serde(default)]
+    pub usage: String,
+    #[serde(default)]
     pub entities: Vec<serde_yaml::Value>,
     #[serde(default)]
     pub causals: Vec<Causal>,
@@ -84,8 +92,6 @@ pub struct Schema {
     pub boundaries: Vec<String>,
     #[serde(default)]
     pub properties: Vec<KeyValue>,
-    #[serde(default)]
-    pub dynamics: Vec<KeyValue>,
     #[serde(default)]
     pub mappings: Vec<IntentMapping>,
     #[serde(default)]
