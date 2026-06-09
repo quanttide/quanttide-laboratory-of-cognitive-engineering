@@ -215,6 +215,16 @@ impl Repl {
                         Err(e) => println!("Error: {}", e),
                     }
                 }
+                "intention-report" | "ir" => {
+                    if parts.len() < 2 {
+                        println!("Usage: intention-report <week>");
+                        continue;
+                    }
+                    match reporter.intention_report(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
                 "coverage" => {
                     if parts.len() < 2 {
                         println!("Usage: coverage <week>");
