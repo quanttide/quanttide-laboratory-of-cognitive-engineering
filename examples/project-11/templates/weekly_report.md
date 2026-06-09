@@ -2,107 +2,85 @@
 
 > 生成时间：{{date}}
 
----
 
-## 核心判断
+## 核心发现
 
-{{core_judgment}}
+{{core_finding}}
 
----
 
 ## 行动建议
 
-| 优先级 | 行动项 | 负责人 | 时限 | 预期效果 | 风险 |
-|--------|--------|-------|------|---------|------|
+| 优先级 | 行动 | 负责人 | 时限 | 预期效果 |
+|--------|------|-------|------|---------|
 {{#actions}}
-| {{priority}} | {{action}} | {{owner}} | {{deadline}} | {{expected_outcome}} | {{risk}} |
+| {{priority}} | {{action}} | {{owner}} | {{deadline}} | {{expected}} |
 {{/actions}}
 
----
 
-## 全景概览
+## 全景
 
-{{situation_count}} 个情境，{{intention_count}} 条意向（高优先 {{high_priority_count}}，高风险 {{high_risk_count}}）
+{{situation_count}} 个情境 · {{intention_count}} 条意向 · 高优先 {{high_p}} · 高风险 {{high_r}}
 
-| 情境 | 意向数 | 高优先级 | 高风险 |
-|------|--------|---------|-------|
+| 情境 | 意向 | 优先级 | 风险 |
+|------|------|--------|------|
 {{#situations}}
-| {{label}} | {{intention_count}} | {{high_priority}} | {{high_risk}} |
+| {{label}} | {{count}} | {{priority}} | {{risk}} |
 {{/situations}}
 
----
 
-## 逐情境分析
+## 重点分析
 
-{{#situations}}
+{{#spotlights}}
 
-### {{label}}（{{name}}）
+### {{label}}
 
 **演化**：{{dynamics}}
 
-**现象**：{{ecology}}
+**所以**：{{implication}}
 
-**判断**：{{frame}}
-
-| 关键意向 | 优先级 | 风险 | 层级 | 触发 |
-|---------|--------|------|------|------|
+| 意向 | 优先级 | 风险 |
+|------|--------|------|
 {{#intentions}}
-| {{title}} | {{priority}} | {{risk}} | {{level}} | {{trigger}} |
+| {{title}} | {{priority}} | {{risk}} |
 {{/intentions}}
 
----
+{{/spotlights}}
 
-{{/situations}}
 
----
+## 关键关系
 
-## 关系分析
+{{#relations}}
 
-{{#situation_relations}}
+- **{{source}}** → **{{target}}**：{{type}}（{{strength}}）
+  {{logic}} [{{confidence}}]
 
-- **{{source}}** ↔ **{{target}}**：{{type}}（{{strength}}）
-  {{logic}}
+{{/relations}}
 
-{{/situation_relations}}
 
-{{#intention_relations}}
-
-- **{{source_title}}** → **{{target_title}}**：{{type}} — {{logic}}
-
-{{/intention_relations}}
-
----
-
-## 跨情境心智模型
+## 心智模型
 
 {{#schemas}}
 
 ### {{label}}
 
-{{usage}}
-
 {{#causals}}
-- IF {{condition}} THEN {{outcome}}
+- IF {{condition}} → {{outcome}}
 {{/causals}}
 {{#biases}}
-- 信念：{{belief}}（事实：{{fact}}）
+- 偏差：{{belief}}（事实：{{fact}}）
 {{/biases}}
-{{#boundaries}}
-- 边界：{{boundary}}
-{{/boundaries}}
 
 {{/schemas}}
 
----
 
-## 与前周对比
+## 变化
 
-{{#comparisons}}
+{{#changes}}
 
 | 情境 | 变化 | 含义 |
 |------|------|------|
 {{#items}}
-| {{label}} | {{change}} | {{implication}} |
+| {{label}} | {{change}} | {{meaning}} |
 {{/items}}
 
-{{/comparisons}}
+{{/changes}}
