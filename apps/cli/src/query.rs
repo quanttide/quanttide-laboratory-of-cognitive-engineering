@@ -112,7 +112,7 @@ impl QueryEngine {
         self.loader.list_weeks()
     }
 
-    pub fn registry(&self) -> Result<Vec<RegistryEntry>, String> {
+    pub fn registry(&self) -> Result<Vec<Domain>, String> {
         self.loader.load_registry()
     }
 }

@@ -3,14 +3,8 @@ pub use quanttide_think::{
     intention::{Intention, Agent, Level, Priority, Trigger, Risk},
     situation::{Situation, SituationContent},
     schema::{Schema, SchemaContent, Entity, Causal, KeyValue, Mapping, Bias},
+    domain::Domain,
 };
-
-/// Registry entry mapping name to label
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct RegistryEntry {
-    pub name: String,
-    pub label: String,
-}
 
 /// A week bundle: all situations + intentions for a given week
 #[derive(Debug, Clone)]

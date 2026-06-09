@@ -16,7 +16,7 @@ impl GalleryLoader {
     }
 
     /// Load the registry
-    pub fn load_registry(&self) -> Result<Vec<RegistryEntry>, String> {
+    pub fn load_registry(&self) -> Result<Vec<Domain>, String> {
         let path = self.gallery_base.join("situation").join("registry.yaml");
         let content = fs::read_to_string(&path)
             .map_err(|e| format!("Failed to read registry: {}", e))?;
@@ -95,7 +95,7 @@ impl GalleryLoader {
     }
 
     /// Load domain registry (ordered list of situations from contract/domain.yaml)
-    pub fn load_category(&self) -> Result<Vec<RegistryEntry>, String> {
+    pub fn load_category(&self) -> Result<Vec<Domain>, String> {
         let path = self.gallery_base.join("contract").join("domain.yaml");
         let content = fs::read_to_string(&path)
             .map_err(|e| format!("Failed to read category: {}", e))?;
