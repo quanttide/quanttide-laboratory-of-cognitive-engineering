@@ -1,257 +1,265 @@
-- biases:
-  - belief: 所有想法都值得先投入
-    fact: 低门槛验证可快速筛选无效想法
-    id: b1c2d3e4-f5a6-7890-bcde-f12345678901
-  boundaries:
-  - 适用于商业和研发探索
-  - 忽略高投入长期项目
-  causals:
-  - condition: 新想法通过低门槛验证
-    outcome: 可行后结构化复制
-  - condition: 验证失败
-    outcome: 低成本放弃
-  dynamics:
-    复制效率: 高
-    验证成本: 低
-  entities:
-  - 新想法:
-    - 可行性
-    - 门槛
-  - 验证手段:
-    - POC
-    - 章程
-    - 原型
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+- id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
   label: 低门槛验证
-  mappings:
-  - action: 做POC验证
-    intent: 探索新商业模式
-  - action: 先小规模试错
-    intent: 降低风险
-- biases:
-  - belief: 高压探索必须牺牲健康
-    fact: 元意图保障可维持长期产出
-    id: c2d3e4f5-a6b7-8901-def2-345678901234
-  boundaries:
-  - 适用于高压探索阶段
-  - 忽略短期冲刺场景
-  causals:
-  - condition: 元意图得到维护
-    outcome: 其他意图可持续运作
-  - condition: 元意图被忽视
-    outcome: 高压探索产生无意义感
-  dynamics:
-    恢复成本: 高
-    维护频率: 每日
   entities:
-  - 元意图:
-    - 可持续性
-    - 基础条件
-  - 工作意图:
-    - 探索
-    - 产出
-  id: b2c3d4e5-f6a7-8901-cdef-123456789012
-  label: 元意图保障
-  mappings:
-  - action: 早睡早起低耗能模式
-    intent: 保持心理可持续
-  - action: 整合带来清晰感
-    intent: 对冲无意义感
-- biases:
-  - belief: 备份越多越安全
-    fact: 体系化治理比堆叠备份更有效
-    id: d3e4f5a6-b7c8-9012-ef45-678901234567
-  boundaries:
-  - 适用于多云端环境
-  - 忽略单机简单场景
+    - 新想法:
+      - 可行性
+      - 门槛
+    - 验证手段:
+      - POC
+      - 章程
+      - 原型
   causals:
-  - condition: 被动防守备份
-    outcome: 数据丢失风险
-  - condition: 主动设计体系
-    outcome: 安全可靠平台
+    - condition: 新想法通过低门槛验证
+      outcome: 可行后结构化复制
+    - condition: 验证失败
+      outcome: 低成本放弃
+  boundaries:
+    - 适用于商业和研发探索
+    - 忽略高投入长期项目
+  dynamics:
+    验证成本: 低
+    复制效率: 高
+  mappings:
+    - intent: 探索新商业模式
+      action: 做POC验证
+    - intent: 降低风险
+      action: 先小规模试错
+  biases:
+    - id: b1c2d3e4-f5a6-7890-bcde-f12345678901
+      belief: 所有想法都值得先投入
+      fact: 低门槛验证可快速筛选无效想法
+
+- id: b2c3d4e5-f6a7-8901-cdef-123456789012
+  label: 元意图保障
+  entities:
+    - 元意图:
+      - 可持续性
+      - 基础条件
+    - 工作意图:
+      - 探索
+      - 产出
+  causals:
+    - condition: 元意图得到维护
+      outcome: 其他意图可持续运作
+    - condition: 元意图被忽视
+      outcome: 高压探索产生无意义感
+  boundaries:
+    - 适用于高压探索阶段
+    - 忽略短期冲刺场景
+  dynamics:
+    维护频率: 每日
+    恢复成本: 高
+  mappings:
+    - intent: 保持心理可持续
+      action: 早睡早起低耗能模式
+    - intent: 对冲无意义感
+      action: 整合带来清晰感
+  biases:
+    - id: c2d3e4f5-a6b7-8901-def2-345678901234
+      belief: 高压探索必须牺牲健康
+      fact: 元意图保障可维持长期产出
+
+- id: c3d4e5f6-a7b8-9012-ef34-567890123456
+  label: 体系化治理
+  entities:
+    - 基础设施:
+      - 备份
+      - 工具链
+      - 架构
+    - 治理体系:
+      - 标准化
+      - 自动化
+      - 分工
+  causals:
+    - condition: 被动防守备份
+      outcome: 数据丢失风险
+    - condition: 主动设计体系
+      outcome: 安全可靠平台
+  boundaries:
+    - 适用于多云端环境
+    - 忽略单机简单场景
   dynamics:
     抽象风险: 随复杂度增加
-  entities:
-  - 基础设施:
-    - 备份
-    - 工具链
-    - 架构
-  - 治理体系:
-    - 标准化
-    - 自动化
-    - 分工
-  id: c3d4e5f6-a7b8-9012-ef34-567890123456
-  label: 体系化治理
   mappings:
-  - action: 建立自动化备份
-    intent: 防数据丢失
-  - action: 标准化治理
-    intent: 理清工具链归属
-- biases:
-  - belief: AI可完全替代人类洞察
-    fact: 人类反馈是打破AI局部最优的关键
-    id: e4f5a6b7-c8d9-0123-f567-890123456789
-  boundaries:
-  - 适用于研发探索
-  - 忽略纯机械重复任务
+    - intent: 防数据丢失
+      action: 建立自动化备份
+    - intent: 理清工具链归属
+      action: 标准化治理
+  biases:
+    - id: d3e4f5a6-b7c8-9012-ef45-678901234567
+      belief: 备份越多越安全
+      fact: 体系化治理比堆叠备份更有效
+
+- id: d4e5f6a7-b8c9-0123-f456-789012345678
+  label: 人机协作循环
+  entities:
+    - 人类:
+      - 洞察
+      - 反馈
+    - AI:
+      - 补全
+      - 整合
   causals:
-  - condition: 人类提供洞察
-    outcome: AI补全整合
-  - condition: AI整合后
-    outcome: 驱动上升循环
+    - condition: 人类提供洞察
+      outcome: AI补全整合
+    - condition: AI整合后
+      outcome: 驱动上升循环
+  boundaries:
+    - 适用于研发探索
+    - 忽略纯机械重复任务
   dynamics:
     循环速度: 随自动化程度提升
-  entities:
-  - 人类:
-    - 洞察
-    - 反馈
-  - AI:
-    - 补全
-    - 整合
-  id: d4e5f6a7-b8c9-0123-f456-789012345678
-  label: 人机协作循环
   mappings:
-  - action: 使用POC和AI补全器
-    intent: 快速发现洞察
-  - action: 依赖AI自动化
-    intent: 维持低耗能产出
-- biases:
-  - belief: 标准化是终点工作
-    fact: 标准化是元智能的自然产出
-    id: f5a6b7c8-d9e0-1234-6789-012345678901
-  boundaries:
-  - 适用于治理体系
-  - 忽略一次性规则制定
+    - intent: 快速发现洞察
+      action: 使用POC和AI补全器
+    - intent: 维持低耗能产出
+      action: 依赖AI自动化
+  biases:
+    - id: e4f5a6b7-c8d9-0123-f567-890123456789
+      belief: AI可完全替代人类洞察
+      fact: 人类反馈是打破AI局部最优的关键
+
+- id: e5f6a7b8-c9d0-1234-5678-901234567890
+  label: 元智能成熟
+  entities:
+    - 元智能:
+      - 标准化
+      - 自我维护
+    - 系统:
+      - 成熟度
+      - 规则
   causals:
-  - condition: 元智能成熟
-    outcome: 系统自我维护
-  - condition: 元智能不成熟
-    outcome: 规则依赖人工维护
+    - condition: 元智能成熟
+      outcome: 系统自我维护
+    - condition: 元智能不成熟
+      outcome: 规则依赖人工维护
+  boundaries:
+    - 适用于治理体系
+    - 忽略一次性规则制定
   dynamics:
     成熟度: 随迭代递增
-  entities:
-  - 元智能:
-    - 标准化
-    - 自我维护
-  - 系统:
-    - 成熟度
-    - 规则
-  id: e5f6a7b8-c9d0-1234-5678-901234567890
-  label: 元智能成熟
   mappings:
-  - action: 归并规则集
-    intent: 建立标准化
-  - action: 培养元智能
-    intent: 提升系统成熟度
-- biases:
-  - belief: 招人补位即可解决
-    fact: 制度化才是根本但需保留温度
-    id: a6b7c8d9-e0f1-2345-7890-123456789012
-  boundaries:
-  - 适用于初创团队
-  - 忽略成熟大企业
+    - intent: 建立标准化
+      action: 归并规则集
+    - intent: 提升系统成熟度
+      action: 培养元智能
+  biases:
+    - id: f5a6b7c8-d9e0-1234-6789-012345678901
+      belief: 标准化是终点工作
+      fact: 标准化是元智能的自然产出
+
+- id: f6a7b8c9-d0e1-2345-7890-123456789012
+  label: 反脆弱转型
+  entities:
+    - 团队:
+      - 韧性
+      - 人治温度
+    - 制度:
+      - 法治
+      - 标准化
   causals:
-  - condition: 依赖人治
-    outcome: 组织温度高但脆弱
-  - condition: 建立制度
-    outcome: 韧性增强但可能失去温度
+    - condition: 依赖人治
+      outcome: 组织温度高但脆弱
+    - condition: 建立制度
+      outcome: 韧性增强但可能失去温度
+  boundaries:
+    - 适用于初创团队
+    - 忽略成熟大企业
   dynamics:
     温度损失: 随制度化增加
-  entities:
-  - 团队:
-    - 韧性
-    - 人治温度
-  - 制度:
-    - 法治
-    - 标准化
-  id: f6a7b8c9-d0e1-2345-7890-123456789012
-  label: 反脆弱转型
   mappings:
-  - action: 建立反脆弱机制
-    intent: 应对人员流失
-  - action: 平衡人治与法治
-    intent: 文化转型
-- biases:
-  - belief: 改进UI技巧即可
-    fact: 需要范式级重构
-    id: b7c8d9e0-f1a2-3456-8901-234567890123
-  boundaries:
-  - 适用于AI协作场景
-  - 忽略传统文档编辑
+    - intent: 应对人员流失
+      action: 建立反脆弱机制
+    - intent: 文化转型
+      action: 平衡人治与法治
+  biases:
+    - id: a6b7c8d9-e0f1-2345-7890-123456789012
+      belief: 招人补位即可解决
+      fact: 制度化才是根本但需保留温度
+
+- id: a7b8c9d0-e1f2-3456-8901-234567890123
+  label: 范式级交互
+  entities:
+    - AI表达:
+      - 多样化
+      - 超越传统
+    - 交互范式:
+      - 阅读器
+      - 编辑器
   causals:
-  - condition: AI表达多样化
-    outcome: 传统编辑器不适应
-  - condition: 重新思考为阅读器
-    outcome: 适应AI协作
+    - condition: AI表达多样化
+      outcome: 传统编辑器不适应
+    - condition: 重新思考为阅读器
+      outcome: 适应AI协作
+  boundaries:
+    - 适用于AI协作场景
+    - 忽略传统文档编辑
   dynamics:
     适应度: 随范式转变提升
-  entities:
-  - AI表达:
-    - 多样化
-    - 超越传统
-  - 交互范式:
-    - 阅读器
-    - 编辑器
-  id: a7b8c9d0-e1f2-3456-8901-234567890123
-  label: 范式级交互
   mappings:
-  - action: 设计可编辑阅读器
-    intent: 适应AI表达
-  - action: 分解组件设计
-    intent: 缓解AI注意力不足
-- biases:
-  - belief: AI可自行收敛
-    fact: 人类反馈是打破框架的关键
-    id: c8d9e0f1-a2b3-4567-9012-345678901234
-  boundaries:
-  - 适用于人机协同
-  - 忽略单机推理
+    - intent: 适应AI表达
+      action: 设计可编辑阅读器
+    - intent: 缓解AI注意力不足
+      action: 分解组件设计
+  biases:
+    - id: b7c8d9e0-f1a2-3456-8901-234567890123
+      belief: 改进UI技巧即可
+      fact: 需要范式级重构
+
+- id: b8c9d0e1-f2a3-4567-9012-345678901234
+  label: 意图工程
+  entities:
+    - 人类意图:
+      - 驱动
+      - 反馈
+    - 辩论:
+      - 收敛
+      - 章程生成
   causals:
-  - condition: 人类反馈打破AI局部最优
-    outcome: 辩论收敛
-  - condition: 辩论产出章程
-    outcome: 结构化知识
+    - condition: 人类反馈打破AI局部最优
+      outcome: 辩论收敛
+    - condition: 辩论产出章程
+      outcome: 结构化知识
+  boundaries:
+    - 适用于人机协同
+    - 忽略单机推理
   dynamics:
     收敛速度: 随反馈质量提升
-  entities:
-  - 人类意图:
-    - 驱动
-    - 反馈
-  - 辩论:
-    - 收敛
-    - 章程生成
-  id: b8c9d0e1-f2a3-4567-9012-345678901234
-  label: 意图工程
   mappings:
-  - action: 进行人机辩论
-    intent: 发现意图
-  - action: 利用辩论产物
-    intent: 生成章程
-- biases:
-  - belief: 框架可一次性建成
-    fact: 需要从原型迭代成型
-    id: d9e0f1a2-b3c4-5678-0123-456789012345
-  boundaries:
-  - 适用于叙事工程
-  - 忽略非结构化写作
+    - intent: 发现意图
+      action: 进行人机辩论
+    - intent: 生成章程
+      action: 利用辩论产物
+  biases:
+    - id: c8d9e0f1-a2b3-4567-9012-345678901234
+      belief: AI可自行收敛
+      fact: 人类反馈是打破框架的关键
+
+- id: c9d0e1f2-a3b4-5678-0123-456789012345
+  label: 迭代框架成型
+  entities:
+    - 写作云:
+      - 原型
+      - 框架
+    - 方法论:
+      - 3R
+      - 本体
   causals:
-  - condition: 原型验证可行
-    outcome: 框架成型
-  - condition: 整合力量驱动
-    outcome: 上升循环
+    - condition: 原型验证可行
+      outcome: 框架成型
+    - condition: 整合力量驱动
+      outcome: 上升循环
+  boundaries:
+    - 适用于叙事工程
+    - 忽略非结构化写作
   dynamics:
     迭代周期: 随整合加速
-  entities:
-  - 写作云:
-    - 原型
-    - 框架
-  - 方法论:
-    - 3R
-    - 本体
-  id: c9d0e1f2-a3b4-5678-0123-456789012345
-  label: 迭代框架成型
   mappings:
-  - action: 从原型到框架迭代
-    intent: 打磨写作云
-  - action: 利用整合力量
-    intent: 驱动上升循环
+    - intent: 打磨写作云
+      action: 从原型到框架迭代
+    - intent: 驱动上升循环
+      action: 利用整合力量
+  biases:
+    - id: d9e0f1a2-b3c4-5678-0123-456789012345
+      belief: 框架可一次性建成
+      fact: 需要从原型迭代成型
