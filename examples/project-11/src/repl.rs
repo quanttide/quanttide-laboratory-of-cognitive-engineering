@@ -27,6 +27,9 @@ impl Repl {
         println!("  report <week>            - generate structured weekly report");
         println!("  diff <weekA> <weekB>      - compare two weeks");
         println!("  relate <week>            - LLM infer situation relations");
+        println!("  intentions [week] [name]  - list intentions");
+        println!("  intention <id>           - show intention detail");
+        println!("  filter --week <w> --sit <n> --priority <p> --risk <r> --level <l> --agent <a>");
         println!("  exit                     - quit\n");
 
         let stdin = io::stdin();
@@ -49,6 +52,9 @@ impl Repl {
                     println!("  report <week>            - generate structured weekly report");
                     println!("  diff <weekA> <weekB>      - compare two weeks");
                     println!("  relate <week>            - LLM infer situation relations");
+                    println!("  intentions [week] [name]  - list intentions");
+                    println!("  intention <id>           - show intention detail");
+                    println!("  filter <options>         - filter intentions");
                     println!("  exit                     - quit");
                 }
                 "weeks" => match self.engine.list_weeks() {
@@ -125,6 +131,73 @@ impl Repl {
                         continue;
                     }
                     match reporter.relate_llm(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "intentions" => {
+                    let first = parts.get(1).map(|s| *s);
+                    // if 1st arg is a week pattern, use as week; otherwise as situation name
+                    let (w, n) = if let Some(v) = first {
+                        if v.starts_with("2026-") {
+                            (Some(v), parts.get(2).map(|s| *s))
+                        } else {
+                            (None, Some(v))
+                        }
+                    } else {
+                        (None, None)
+                    };
+                    if let Some(w) = w {
+                        match reporter.list_intentions(w, n) {
+                            Ok(s) => println!("{}", s),
+                            Err(e) => println!("Error: {}", e),
+                        }
+                    } else {
+                        // no args: list all intentions across all weeks
+                        match reporter.filter_intentions(None, None, None, None, None, None) {
+                            Ok(s) => println!("{}", s),
+                            Err(e) => println!("Error: {}", e),
+                        }
+                    }
+                }
+                "intention" => {
+                    if parts.len() < 2 {
+                        println!("Usage: intention <id>");
+                        continue;
+                    }
+                    match reporter.show_intention(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "filter" => {
+                    let mut week = None;
+                    let mut sit_name = None;
+                    let mut priority = None;
+                    let mut risk = None;
+                    let mut level = None;
+                    let mut agent = None;
+                    let mut i = 1;
+                    while i < parts.len() {
+                        match parts[i] {
+                            "--week" => { i += 1; week = parts.get(i).map(|s| s.to_string()); }
+                            "--sit" => { i += 1; sit_name = parts.get(i).map(|s| s.to_string()); }
+                            "--priority" => { i += 1; priority = parts.get(i).map(|s| s.to_string()); }
+                            "--risk" => { i += 1; risk = parts.get(i).map(|s| s.to_string()); }
+                            "--level" => { i += 1; level = parts.get(i).map(|s| s.to_string()); }
+                            "--agent" => { i += 1; agent = parts.get(i).map(|s| s.to_string()); }
+                            _ => {}
+                        }
+                        i += 1;
+                    }
+                    match reporter.filter_intentions(
+                        week.as_deref(),
+                        sit_name.as_deref(),
+                        priority.as_deref(),
+                        risk.as_deref(),
+                        level.as_deref(),
+                        agent.as_deref(),
+                    ) {
                         Ok(s) => println!("{}", s),
                         Err(e) => println!("Error: {}", e),
                     }

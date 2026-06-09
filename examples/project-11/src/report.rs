@@ -387,4 +387,102 @@ impl ReportGenerator {
 
         Ok(out)
     }
+
+    // ── Intention queries ──
+
+    /// List intentions for a week, optionally filtered by situation name
+    pub fn list_intentions(&self, week: &str, name: Option<&str>) -> Result<String, String> {
+        let registry = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = registry
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+
+        let data = self.engine.week(week)?;
+        let mut out = String::new();
+        out.push_str(&format!("# Intentions: {}\n\n", week));
+
+        for sit in &data.situations {
+            if let Some(ref n) = name {
+                if sit.name != *n {
+                    continue;
+                }
+            }
+            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
+            if let Some(intents) = data.intention_map.get(&sit.name) {
+                out.push_str(&format!("## {}（{}）\n\n", label, sit.name));
+                for i in intents {
+                    out.push_str(&format!(
+                        "- {} | level={} | priority={} | risk={} | trigger={}\n",
+                        i.title, i.level.label, i.priority.label, i.risk.label, i.trigger.label
+                    ));
+                    out.push_str(&format!("  {}\n", i.description));
+                }
+                out.push('\n');
+            }
+        }
+        Ok(out)
+    }
+
+    /// Show a single intention by UUID
+    pub fn show_intention(&self, id: &str) -> Result<String, String> {
+        match self.engine.intention_by_id(id)? {
+            None => Ok(format!("Intention not found: {}", id)),
+            Some((week, sit_name, i)) => {
+                let reg = self.engine.registry().ok();
+                let label = reg
+                    .unwrap_or_default()
+                    .into_iter()
+                    .find(|e| e.name == sit_name)
+                    .map(|e| e.label)
+                    .unwrap_or_else(|| sit_name.clone());
+                let mut out = String::new();
+                out.push_str(&format!("# {}\n\n", i.title));
+                out.push_str(&format!("**ID**: {}\n", i.id));
+                out.push_str(&format!("**Week**: {}\n", week));
+                out.push_str(&format!("**Situation**: {}（{}）\n", label, sit_name));
+                out.push_str(&format!("**Description**: {}\n", i.description));
+                out.push_str(&format!("**Motivation**: {}\n", i.motivation));
+                out.push_str(&format!("**Agent**: {} | **Level**: {}\n", i.agent.label, i.level.label));
+                out.push_str(&format!(
+                    "**Priority**: {} | **Risk**: {} | **Trigger**: {}\n",
+                    i.priority.label, i.risk.label, i.trigger.label
+                ));
+                Ok(out)
+            }
+        }
+    }
+
+    /// Show filtered intentions table
+    pub fn filter_intentions(
+        &self,
+        week: Option<&str>,
+        sit_name: Option<&str>,
+        priority: Option<&str>,
+        risk: Option<&str>,
+        level: Option<&str>,
+        agent: Option<&str>,
+    ) -> Result<String, String> {
+        let results = self.engine.all_intentions(week, sit_name, priority, risk, level, agent)?;
+        let reg = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = reg
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+
+        let mut out = String::new();
+        out.push_str("| Week | Situation | Title | Priority | Risk | Level |\n");
+        out.push_str("|------|-----------|-------|----------|------|-------|\n");
+        for (w, sn, i) in &results {
+            let label = label_map.get(sn.as_str()).cloned().unwrap_or_else(|| sn.clone());
+            out.push_str(&format!(
+                "| {} | {} | {} | {} | {} | {} |\n",
+                w, label, i.title, i.priority.label, i.risk.label, i.level.label
+            ));
+        }
+        out.push_str(&format!("\n{} results\n", results.len()));
+        Ok(out)
+    }
 }
