@@ -71,6 +71,45 @@ pub struct Relation {
     pub logic: String,
 }
 
+/// Schema: fine-grained mental model
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Schema {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub entities: Vec<serde_yaml::Value>,
+    #[serde(default)]
+    pub causals: Vec<Causal>,
+    #[serde(default)]
+    pub boundaries: Vec<String>,
+    #[serde(default)]
+    pub dynamics: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub mappings: Vec<IntentMapping>,
+    #[serde(default)]
+    pub biases: Vec<Bias>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Causal {
+    pub condition: String,
+    pub outcome: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IntentMapping {
+    pub intent: String,
+    #[serde(default)]
+    pub action: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Bias {
+    pub id: String,
+    pub belief: String,
+    pub fact: String,
+}
+
 /// Mental model identified across situations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MentalModel {

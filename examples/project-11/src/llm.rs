@@ -41,15 +41,32 @@ impl DeepSeekClient {
 }
 
 pub fn extract_json(response: &str) -> Result<Value, String> {
-    let json_str = if let Some(start) = response.find("```json") {
-        let s = start + 7;
-        let e = response[s..].find("```").map(|i| s + i).unwrap_or(response.len());
-        response[s..e].trim()
-    } else if let Some(start) = response.find('{') {
+    // Try code block first
+    for marker in &["```json", "```JSON", "```yaml", "```YAML"] {
+        if let Some(start) = response.find(marker) {
+            let s = start + marker.len();
+            let e = response[s..].find("```").map(|i| s + i).unwrap_or(response.len());
+            let trimmed = response[s..e].trim();
+            if let Ok(v) = serde_json::from_str(trimmed) {
+                return Ok(v);
+            }
+        }
+    }
+    // Try raw JSON object
+    if let Some(start) = response.find('{') {
         let e = response.rfind('}').map(|i| i + 1).unwrap_or(response.len());
-        response[start..e].trim()
-    } else {
-        response.trim()
-    };
-    serde_json::from_str(json_str).map_err(|e| format!("JSON parse error: {}", e))
+        let trimmed = response[start..e].trim();
+        if let Ok(v) = serde_json::from_str(trimmed) {
+            return Ok(v);
+        }
+    }
+    // Try raw JSON array
+    if let Some(start) = response.find('[') {
+        let e = response.rfind(']').map(|i| i + 1).unwrap_or(response.len());
+        let trimmed = response[start..e].trim();
+        if let Ok(v) = serde_json::from_str(trimmed) {
+            return Ok(v);
+        }
+    }
+    Err("No valid JSON found in response".to_string())
 }

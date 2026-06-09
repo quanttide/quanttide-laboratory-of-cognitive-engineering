@@ -95,6 +95,20 @@ impl GalleryLoader {
         })
     }
 
+    /// Load schemas for a given week
+    pub fn load_schemas(&self, week: &str) -> Result<Vec<Schema>, String> {
+        let path = self.gallery_base.join("schema").join(format!("{}.yaml", week));
+        let content = match fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => return Ok(Vec::new()),
+        };
+        if content.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+        serde_yaml::from_str(&content)
+            .map_err(|e| format!("Failed to parse schema {}: {}", week, e))
+    }
+
     /// List available weeks by scanning the situation directory
     pub fn list_weeks(&self) -> Result<Vec<String>, String> {
         let dir = self.gallery_base.join("situation");
