@@ -1,0 +1,174 @@
+- biases:
+  - belief: 商业进展应独立于情绪
+    fact: 商业进展与心理状态高度共振
+    id: b1c2d3e4-f5a6-7890-bcde-1234567890ab
+  boundaries:
+  - 商业不确定性高时心理稳态需求强
+  - 情绪波动是常态而非异常
+  causals:
+  - condition: 商业进展波动
+    outcome: 情绪共振波动
+  - condition: 多客户对冲
+    outcome: 降低单一风险
+  - condition: 制度转移压力
+    outcome: 维护心理稳态
+  dynamics:
+  - key: 情绪曲线
+    value: 恐惧→谨慎乐观→断裂→疲劳→对抗→愤怒→希望
+  - key: 商业进展
+    value: 驱动情绪波动
+  entities:
+  - attributes:
+    - 驱动情绪
+    - 不确定性
+    name: 商业进展
+  - attributes:
+    - 情绪波动
+    - 仪表盘
+    name: 心理状态
+  - attributes:
+    - 多客户对冲
+    - 制度转移
+    name: 对冲策略
+  id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  label: 共振对冲模型
+  mappings:
+  - action: 多客户对冲与边界管理
+    intent: 实现商业验证与收入增长
+  - action: 制度转移压力作为应对策略
+    intent: 维护心理稳态与情绪调节
+  properties:
+  - key: 共振强度
+    value: 高
+  - key: 策略倾向
+    value: 对冲与边界管理
+- biases:
+  - belief: 快速原型必然牺牲质量
+    fact: 标准化POC可同时保证速度与质量
+    id: c2d3e4f5-a6b7-8901-defa-3456789012cd
+  boundaries:
+  - 适用于研发迭代场景
+  - 需标准化POC流程
+  causals:
+  - condition: 实验室模式加速
+    outcome: 三天写三个平台原型
+  - condition: 概念验证为中心
+    outcome: 成本降到仅需AI运行半小时
+  - condition: 平台研发
+    outcome: 比服务更易脱手
+  dynamics:
+  - key: 探索模式
+    value: 以概念验证为中心
+  - key: 研发效率
+    value: 标准化加速
+  entities:
+  - attributes:
+    - 加速器
+    - 快速原型
+    name: 实验室模式
+  - attributes:
+    - 方法论
+    - 低成本
+    name: 概念验证
+  - attributes:
+    - 可脱手
+    - 战略认知
+    name: 平台
+  id: b2c3d4e5-f6a7-8901-cdef-2345678901bc
+  label: 标准化探索模式
+  mappings:
+  - action: 实验室模式与POC方法论
+    intent: 加速研发迭代与平台化
+  properties:
+  - key: 开发节奏
+    value: 加速
+  - key: 成本
+    value: 低
+- biases:
+  - belief: 团队扩张应优先数量
+    fact: 质量筛选是长期高效的关键
+    id: d3e4f5a6-b7c8-9012-fabc-5678901234ef
+  boundaries:
+  - 适用于组织从个人到系统转型期
+  - 需系统化工具支撑
+  causals:
+  - condition: 从数量扩张转向质量筛选
+    outcome: 人事云系统化工具
+  - condition: 秘书处重组
+    outcome: 能力断层暴露
+  - condition: 能力断层
+    outcome: 执行管理理论缺失
+  dynamics:
+  - key: 组织能力
+    value: 从个人依赖转向系统依赖
+  - key: 招聘体系
+    value: 从数量扩张转向质量筛选
+  entities:
+  - attributes:
+    - 数量扩张
+    - 质量筛选
+    name: 团队建设
+  - attributes:
+    - 系统化工具
+    - 对抗低质量招聘
+    name: 人事云
+  - attributes:
+    - 能力断层
+    - 执行管理理论缺失
+    name: 秘书处
+  id: c3d4e5f6-a7b8-9012-efab-4567890123de
+  label: 质量筛选跃迁
+  mappings:
+  - action: 人事云系统化工具与质量筛选
+    intent: 搭建高效团队与招聘体系
+  properties:
+  - key: 转型阶段
+    value: 阵痛期
+  - key: 招聘策略
+    value: 质量优先
+- biases:
+  - belief: 认知工程只需经验积累
+    fact: 需要形式化元方法作为原规则
+    id: e4f5a6b7-c8d9-0123-bcde-7890123456a1
+  boundaries:
+  - 适用于AI原规则构建
+  - 需形式化建模能力
+  causals:
+  - condition: 思考云降维
+    outcome: 原始思考→干净上下文
+  - condition: 范畴论形式化
+    outcome: 元引路径
+  - condition: COD循环与知识工程循环同构
+    outcome: 收敛为上下游关系
+  dynamics:
+  - key: 认知建模
+    value: 从模糊感受到形式化路径
+  - key: 工具关系
+    value: 从并行设计到上下游收敛
+  entities:
+  - attributes:
+    - 元方法
+    - 原规则
+    name: 认知工程
+  - attributes:
+    - 降维工具
+    - 干净上下文
+    name: 思考云
+  - attributes:
+    - 形式化路径
+    - 元引
+    name: 范畴论
+  - attributes:
+    - 多视角
+    - 可复用资产
+    name: 章程
+  id: d4e5f6a7-b8c9-0123-abcd-6789012345f0
+  label: 元方法认知工程
+  mappings:
+  - action: 思考云降维与范畴论形式化
+    intent: 构建可执行的认知工程框架
+  properties:
+  - key: 框架目标
+    value: 可执行
+  - key: 风险等级
+    value: 高

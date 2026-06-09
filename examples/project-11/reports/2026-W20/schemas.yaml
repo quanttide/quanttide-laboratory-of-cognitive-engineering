@@ -1,0 +1,240 @@
+- biases:
+  - belief: AI只是效率工具
+    fact: AI是认知扩展器，人类认知才是瓶颈
+    id: b1c2d3e4-0001-4000-8000-000000000001
+  boundaries:
+  - 仅适用于AI协作场景
+  - 需人类主动觉察认知局限
+  causals:
+  - condition: 人类认知成为瓶颈
+    outcome: AI从工具跃迁为系统组件
+  - condition: AI作为认知扩展器
+    outcome: Vibe Coding成为检验标准
+  dynamics:
+  - key: 跃迁方向
+    value: 工具→系统组件
+  entities:
+  - attributes:
+    - 瓶颈
+    - 核心约束
+    name: 人类认知
+  - attributes:
+    - 认知扩展器
+    - 系统组件
+    name: AI
+  - attributes:
+    - 检验标准
+    - 思想到代码
+    name: Vibe Coding
+  id: a1b2c3d4-0001-4000-8000-000000000001
+  label: 认知瓶颈跃迁
+  mappings:
+  - action: 确立人类认知瓶颈并启用双引擎架构
+    intent: 深化AI协作模式
+  properties:
+  - key: 优先级
+    value: medium
+  - key: 风险
+    value: medium
+- biases:
+  - belief: 商业与团队管理可分离
+    fact: 商业运营与团队管理高度耦合
+    id: b1c2d3e4-0002-4000-8000-000000000002
+  boundaries:
+  - 适用于高压力商业环境
+  - 需团队管理高度配合
+  causals:
+  - condition: 商业压力增大
+    outcome: 管理风格转向'六亲不认'
+  - condition: 人员离职流动加大
+    outcome: 组织记忆成为平台建设驱动力
+  - condition: 商业压力直接转化
+    outcome: 产品需求涌现
+  dynamics:
+  - key: 转化路径
+    value: 商业压力→管理转型→产品需求
+  entities:
+  - attributes:
+    - 驱动因素
+    - 转化源
+    name: 商业压力
+  - attributes:
+    - 耦合对象
+    - 转型对象
+    name: 团队管理
+  - attributes:
+    - 业务驱动力
+    - 涌现产物
+    name: 组织记忆
+  id: a1b2c3d4-0002-4000-8000-000000000002
+  label: 商业管理耦合
+  mappings:
+  - action: 将商业压力转化为产品需求并调整管理风格
+    intent: 实现可持续的商业增长与团队建设
+  properties:
+  - key: 优先级
+    value: high
+  - key: 风险
+    value: medium
+- biases:
+  - belief: 疲惫只是身体问题
+    fact: 疲惫与情感隔离、信息焦虑同构，需整体管理
+    id: b1c2d3e4-0003-4000-8000-000000000003
+  boundaries:
+  - 适用于高强度认知负荷场景
+  - 需主动觉察身心信号
+  causals:
+  - condition: 身体疲惫达到峰值
+    outcome: 情感隔离作为应对策略
+  - condition: 觉察'不敢说困难'
+    outcome: 从被动承受转向主动觉察
+  - condition: 信息丢失焦虑出现
+    outcome: 疲惫感被建设性焦虑替代
+  dynamics:
+  - key: 转折点
+    value: 被动承受→主动觉察
+  entities:
+  - attributes:
+    - 峰值状态
+    - 信号源
+    name: 身体疲惫
+  - attributes:
+    - 应对策略
+    - 警示标志
+    name: 情感隔离
+  - attributes:
+    - 建设性焦虑
+    - 替代焦点
+    name: 信息丢失焦虑
+  id: a1b2c3d4-0003-4000-8000-000000000003
+  label: 身心基础条件
+  mappings:
+  - action: 觉察身心信号并主动调整节奏
+    intent: 管理认知负荷与维持可持续节奏
+  properties:
+  - key: 优先级
+    value: high
+  - key: 风险
+    value: medium
+- biases:
+  - belief: 标准是工具
+    fact: 标准是系统的核心价值本身
+    id: b1c2d3e4-0004-4000-8000-000000000004
+  boundaries:
+  - 适用于平台架构设计
+  - 需意图一致性
+  causals:
+  - condition: 意图不同
+    outcome: 系统不能拆分
+  - condition: 自我标准化作为元概念
+    outcome: 标准成为系统核心价值
+  - condition: 从设计系统跃迁
+    outcome: 设计能自我设计系统的系统
+  dynamics:
+  - key: 跃迁方向
+    value: 设计系统→设计自设计系统
+  entities:
+  - attributes:
+    - 核心价值
+    - 元能力
+    name: 标准
+  - attributes:
+    - 自设计对象
+    - 自演化主体
+    name: 系统
+  - attributes:
+    - 核心关注
+    - 设计依据
+    name: 数据流向
+  id: a1b2c3d4-0004-4000-8000-000000000004
+  label: 自我标准化
+  mappings:
+  - action: 确立自我标准化为元能力并聚焦数据流向
+    intent: 构建标准化平台架构
+  properties:
+  - key: 优先级
+    value: medium
+  - key: 风险
+    value: medium
+- biases:
+  - belief: 重构是额外成本
+    fact: 重构是收敛混乱和探索的有机组成部分
+    id: b1c2d3e4-0005-4000-8000-000000000005
+  boundaries:
+  - 适用于产品研发体系
+  - 需纪律性执行1:1比例
+  causals:
+  - condition: 重构与开发1:1比例确立
+    outcome: 重构成为研发第一等公民
+  - condition: 重构循环整合进流程
+    outcome: 研发体系成为持续精炼循环
+  - condition: 重构即探索
+    outcome: 收敛混乱与创新并行
+  dynamics:
+  - key: 循环模式
+    value: 重构→精炼→再重构
+  entities:
+  - attributes:
+    - 第一等公民
+    - 收敛手段
+    - 探索组成
+    name: 重构
+  - attributes:
+    - 整合对象
+    - 持续循环
+    name: 研发流程
+  - attributes:
+    - 纪律
+    - 工作量基准
+    name: 1:1比例
+  id: a1b2c3d4-0005-4000-8000-000000000005
+  label: 重构精炼循环
+  mappings:
+  - action: 确立重构与开发1:1比例并整合进流程
+    intent: 建立以重构为中心的研发体系
+  properties:
+  - key: 优先级
+    value: high
+  - key: 风险
+    value: low
+- biases:
+  - belief: 表达是为了外部获客
+    fact: 表达本质是内在叙事的回归
+    id: b1c2d3e4-0006-4000-8000-000000000006
+  boundaries:
+  - 适用于个人内容创作
+  - 需非评判心态
+  causals:
+  - condition: 小说被升华为默认整合入口
+    outcome: 表达从外部回归内在叙事
+  - condition: 非评判作为创作理念
+    outcome: 创作理念转变
+  - condition: 表达方式回归内在
+    outcome: 获客能力受影响
+  dynamics:
+  - key: 回归路径
+    value: 外部表达→内在叙事
+  entities:
+  - attributes:
+    - 整合入口
+    - 情绪处理
+    - 认知整合
+    name: 小说
+  - attributes:
+    - 创作理念
+    - 转变标志
+    name: 非评判
+  - attributes:
+    - 获客能力
+    - 内在叙事
+    name: 表达方式
+  id: a1b2c3d4-0006-4000-8000-000000000006
+  label: 内在叙事回归
+  mappings:
+  - action: 以小说为整合入口并秉持非评判理念
+    intent: 探索与建立个人化的表达方式
+  properties:
+  - key: 优先级
+    value: low
+  - key: 风险
+    value: low

@@ -1119,25 +1119,14 @@ impl ReportGenerator {
 每个 schema 格式：
 {{
   "id": "uuid",
-  "label": "名称（≤8字，像一个名字，不加'心智模型'后缀）",
-  "entities": [{{"实体名": ["属性1", "属性2"]}}],
+  "label": "名称（≤8字，不加'心智模型'后缀）",
+  "entities": [{{"name": "实体名", "attributes": ["属性1", "属性2"]}}],
   "causals": [{{"condition": "条件", "outcome": "结果"}}],
   "boundaries": ["边界1", "边界2"],
-  "dynamics": {{"参数名": "值"}},
+  "properties": [{{"key": "参数名", "value": "值"}}],
+  "dynamics": [{{"key": "参数名", "value": "值"}}],
   "mappings": [{{"intent": "意图描述", "action": "操作描述"}}],
   "biases": [{{"id": "uuid", "belief": "误解信念", "fact": "事实"}}]
-}}
-
-示例：
-{{
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "label": "恒温器控制",
-  "entities": [{{"thermostat": ["current_temperature", "target_temperature", "mode: heat/cool/auto"]}}, {{"sensor": ["measures_indoor_temperature"]}}],
-  "causals": [{{"condition": "target_temperature > current_temperature", "outcome": "设备开始制热"}}, {{"condition": "target_temperature <= current_temperature", "outcome": "设备停止工作"}}],
-  "boundaries": ["仅适用于住宅单一房间", "忽略室外温度影响"],
-  "dynamics": {{"heating_rate": "0.5摄氏度/分钟", "natural_cooling_rate": "0.2摄氏度/分钟"}},
-  "mappings": [{{"intent": "变暖和", "action": "调高设定温度"}}, {{"intent": "省电", "action": "切换到节能模式"}}],
-  "biases": [{{"id": "b1c2d3e4-...", "belief": "认为设定温度越高制热越快", "fact": "实际功率恒定仅终点温度更高"}}]
 }}
 
 输入数据：
