@@ -294,6 +294,71 @@ impl ReportGenerator {
             out.push_str("（无前周数据）\n\n");
         }
 
+        // — Mental Models (schemas) —
+        out.push_str("## 跨情境心智模型\n\n");
+        match self.infer_schemas_json(week) {
+            Ok(json_val) => {
+                if let Some(arr) = json_val.as_array() {
+                    for s in arr {
+                        let label = s["label"].as_str().unwrap_or("?");
+                        out.push_str(&format!("### {}\n\n", label));
+                        // causals: support array and object format
+                        if let Some(causals) = s["causals"].as_array() {
+                            for c in causals {
+                                let cond = c["condition"].as_str().or_else(|| c.as_str()).unwrap_or("");
+                                let outcm = c["outcome"].as_str().unwrap_or("");
+                                if !cond.is_empty() && !outcm.is_empty() {
+                                    out.push_str(&format!("- IF {} THEN {}\n", cond, outcm));
+                                }
+                            }
+                        } else if let Some(map) = s["causals"].as_object() {
+                            for (k, v) in map {
+                                let key = k.trim_start_matches("IF ").trim_end_matches(" THEN");
+                                let val = v.as_str().unwrap_or("").trim_start_matches("THEN ").trim_start_matches("then ");
+                                out.push_str(&format!("- IF {} THEN {}\n", key, val));
+                            }
+                        }
+                        // biases: support array and object format
+                        if let Some(biases) = s["biases"].as_array() {
+                            for b in biases {
+                                let belief = b["belief"].as_str().unwrap_or("");
+                                let fact = b["fact"].as_str().unwrap_or("");
+                                if !belief.is_empty() {
+                                    out.push_str(&format!("- 信念：{}（事实：{}）\n", belief, fact));
+                                }
+                            }
+                        } else if let Some(map) = s["biases"].as_object() {
+                            let bf = map.get("信念").or_else(|| map.get("belief"));
+                            let ft = map.get("事实").or_else(|| map.get("fact"));
+                            if let (Some(belief), Some(fact)) = (bf, ft) {
+                                out.push_str(&format!("- 信念：{}（事实：{}）\n", belief.as_str().unwrap_or("?"), fact.as_str().unwrap_or("?")));
+                            }
+                        }
+                        // boundaries: support array and string
+                        if let Some(bs) = s["boundaries"].as_array() {
+                            for b in bs {
+                                let bstr = b.as_str().unwrap_or("");
+                                if !bstr.is_empty() {
+                                    out.push_str(&format!("- 边界：{}\n", bstr));
+                                }
+                            }
+                        } else if let Some(bstr) = s["boundaries"].as_str() {
+                            out.push_str(&format!("- 边界：{}\n", bstr));
+                        }
+                        out.push('\n');
+                    }
+                    if arr.is_empty() {
+                        out.push_str("（未推理出心智模型）\n\n");
+                    }
+                } else {
+                    out.push_str("（未推理出心智模型）\n\n");
+                }
+            }
+            Err(e) => {
+                out.push_str(&format!("（推理失败：{}）\n\n", e));
+            }
+        }
+
         // Save
         let report_path = self.reports_dir(week).join("report.md");
         fs::write(&report_path, &out).ok();
@@ -974,8 +1039,56 @@ impl ReportGenerator {
         Ok(out)
     }
 
-    /// LLM inference: generate schemas from a week's data (mind model → formal schema)
+    /// Public display command for schema inference
     pub fn infer_schemas(&self, week: &str) -> Result<String, String> {
+        let json = self.infer_schemas_json(week)?;
+        let mut out = String::new();
+        out.push_str(&format!("# Inferred Schemas: {}\n\n", week));
+        if let Some(arr) = json.as_array() {
+            for s in arr {
+                let label = s["label"].as_str().unwrap_or("?");
+                out.push_str(&format!("## {}\n\n", label));
+                if let Some(cs) = s["causals"].as_array() {
+                    for c in cs {
+                        let cond = c["condition"].as_str().unwrap_or("?");
+                        let outcm = c["outcome"].as_str().unwrap_or("?");
+                        out.push_str(&format!("- IF {} THEN {}\n", cond, outcm));
+                    }
+                }
+                if let Some(biases) = s["biases"].as_array() {
+                    for b in biases {
+                        let belief = b["belief"].as_str().unwrap_or("?");
+                        let fact = b["fact"].as_str().unwrap_or("?");
+                        out.push_str(&format!("- 信念：{}（事实：{}）\n", belief, fact));
+                    }
+                }
+                if let Some(bs) = s["boundaries"].as_array() {
+                    for b in bs {
+                        out.push_str(&format!("- 边界：{}\n", b.as_str().unwrap_or("?")));
+                    }
+                }
+                out.push('\n');
+            }
+        }
+        if json.as_array().map_or(true, |a| a.is_empty()) {
+            out.push_str("（未推理出 schema）\n");
+        }
+        Ok(out)
+    }
+
+    /// Private: infer schemas and return JSON value (cached)
+    fn infer_schemas_json(&self, week: &str) -> Result<serde_json::Value, String> {
+        let cache_path = self.reports_dir(week).join("schemas.yaml");
+        // Try read cache
+        if let Ok(content) = fs::read_to_string(&cache_path) {
+            if !content.trim().is_empty() {
+                if let Ok(v) = serde_yaml::from_str::<serde_json::Value>(&content) {
+                    eprintln!("(loaded cached schemas)");
+                    return Ok(v);
+                }
+            }
+        }
+
         let client = crate::llm::DeepSeekClient::from_env()?;
         let data = self.engine.week(week)?;
         let reg = self.engine.registry().ok();
@@ -985,7 +1098,6 @@ impl ReportGenerator {
             .map(|e| (e.name, e.label))
             .collect();
 
-        // Build condensed description of situations + intentions
         let mut desc = String::new();
         for sit in &data.situations {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
@@ -1006,10 +1118,10 @@ impl ReportGenerator {
 
 每个 schema 包含：
 - label: 名称
-- entities: 实体及其属性（操作者认为存在哪些要素）
-- causals: IF-THEN 规则（操作者认为的因果信念）
-- boundaries: 适用边界（此模型在什么范围内有效）
-- dynamics: 量化参数及典型值
+- entities: 实体及其属性
+- causals: IF-THEN 规则（因果信念）
+- boundaries: 适用边界
+- dynamics: 量化参数
 - mappings: 意图到操作的映射
 - biases: 常见误解（信念 vs 事实）
 
@@ -1022,56 +1134,12 @@ impl ReportGenerator {
         let raw = client.chat(&prompt)?;
         let json = crate::llm::extract_json(&raw)?;
 
-        // Save as YAML to reports
-        let out_path = self.reports_dir(week).join("schemas.yaml");
+        // Cache as YAML
         if let Ok(yaml_str) = serde_yaml::to_string(&json) {
-            fs::write(&out_path, &yaml_str).ok();
+            fs::write(&cache_path, &yaml_str).ok();
         }
 
-        // Also display text
-        let mut out = String::new();
-        out.push_str(&format!("# Inferred Schemas: {}\n\n", week));
-        if let Some(arr) = json.as_array() {
-            for s in arr {
-                let label = s["label"].as_str().unwrap_or("?");
-                out.push_str(&format!("## {}\n\n", label));
-                if let Some(ents) = s["entities"].as_array() {
-                    out.push_str("**Entities**:\n");
-                    for e in ents {
-                        out.push_str(&format!("- {}\n", serde_json::to_string(e).unwrap_or_default()));
-                    }
-                }
-                if let Some(cs) = s["causals"].as_array() {
-                    out.push_str("\n**Causals**:\n");
-                    for c in cs {
-                        let cond = c["condition"].as_str().unwrap_or("?");
-                        let outcm = c["outcome"].as_str().unwrap_or("?");
-                        out.push_str(&format!("- IF {} THEN {}\n", cond, outcm));
-                    }
-                }
-                if let Some(bs) = s["boundaries"].as_array() {
-                    out.push_str("\n**Boundaries**:\n");
-                    for b in bs {
-                        out.push_str(&format!("- {}\n", b.as_str().unwrap_or("?")));
-                    }
-                }
-                if let Some(biases) = s["biases"].as_array() {
-                    out.push_str("\n**Biases**:\n");
-                    for b in biases {
-                        let belief = b["belief"].as_str().unwrap_or("?");
-                        let fact = b["fact"].as_str().unwrap_or("?");
-                        out.push_str(&format!("- 信念：{}（事实：{}）\n", belief, fact));
-                    }
-                }
-                out.push('\n');
-            }
-        }
-        if json.as_array().map_or(true, |a| a.is_empty()) {
-            out.push_str("（未推理出 schema）\n");
-        }
-        out.push_str(&format!("(saved to {:?})\n", out_path));
-
-        Ok(out)
+        Ok(json)
     }
 
     /// Helper: get the previous week string
