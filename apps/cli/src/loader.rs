@@ -65,33 +65,13 @@ impl GalleryLoader {
         Ok(intentions)
     }
 
-    /// Load a full week into WeekData
+    /// Load a full week
     pub fn load_week(&self, week: &str) -> Result<WeekData, String> {
         let situations = self.load_situations(week)?;
         let intentions = self.load_intentions(week)?;
-        let mut intention_map: HashMap<String, Vec<Intention>> = HashMap::new();
+        let intention_map = Self::build_intention_map(&self.gallery_base, week);
 
-        let intention_dir = self.gallery_base.join("intention").join(week);
-        if let Ok(entries) = fs::read_dir(&intention_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().map_or(false, |e| e == "yaml") {
-                    let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(list) = serde_yaml::from_str::<Vec<Intention>>(&content) {
-                            intention_map.entry(stem).or_default().extend(list);
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(WeekData {
-            week: week.to_string(),
-            situations,
-            intentions,
-            intention_map,
-        })
+        Ok((situations, intentions, intention_map))
     }
 
     /// Load domain registry (ordered list of situations from contract/domain.yaml)
@@ -131,5 +111,24 @@ impl GalleryLoader {
         }
         weeks.sort();
         Ok(weeks)
+    }
+
+    fn build_intention_map(gallery_base: &std::path::PathBuf, week: &str) -> HashMap<String, Vec<Intention>> {
+        let mut map: HashMap<String, Vec<Intention>> = HashMap::new();
+        let dir = gallery_base.join("intention").join(week);
+        if let Ok(entries) = fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().map_or(false, |e| e == "yaml") {
+                    let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        if let Ok(list) = serde_yaml::from_str::<Vec<Intention>>(&content) {
+                            map.entry(stem).or_default().extend(list);
+                        }
+                    }
+                }
+            }
+        }
+        map
     }
 }

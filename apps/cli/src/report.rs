@@ -29,11 +29,11 @@ impl ReportGenerator {
         out.push_str(&format!("# Week {} Summary\n\n", week));
         out.push_str(&format!(
             "Situations: {} | Intentions: {}\n\n",
-            data.situations.len(),
-            data.intentions.len(),
+            data.0.len(),
+            data.1.len(),
         ));
 
-        for sit in &data.situations {
+        for sit in &data.0 {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
             out.push_str(&format!("## {} ({})\n\n", label, sit.name));
             out.push_str(&format!("**Agenda**: {}\n", sit.content.agenda));
@@ -41,7 +41,7 @@ impl ReportGenerator {
             out.push_str(&format!("**Frame**: {}\n", sit.content.frame));
             out.push_str(&format!("**Dynamics**: {}\n\n", sit.content.dynamics));
 
-            if let Some(intents) = data.intention_map.get(&sit.name) {
+            if let Some(intents) = data.2.get(&sit.name) {
                 out.push_str("### Intentions\n\n");
                 for i in intents {
                     out.push_str(&format!(
@@ -104,9 +104,9 @@ impl ReportGenerator {
             "| Situation | Intentions | Priorities |\n|---|---|---|\n"
         ));
 
-        for sit in &data.situations {
+        for sit in &data.0 {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            let intents = data.intention_map.get(&sit.name);
+            let intents = data.2.get(&sit.name);
             let count = intents.map(|v| v.len()).unwrap_or(0);
             let prios: String = intents
                 .map(|v| {
@@ -148,7 +148,7 @@ impl ReportGenerator {
             .map(|(i, e)| (e.name, i))
             .collect();
 
-        let mut sorted_sits = data.situations.clone();
+        let mut sorted_sits = data.0.clone();
         sorted_sits.sort_by(|a, b| {
             let ai = category_order.get(&a.name).copied().unwrap_or(usize::MAX);
             let bi = category_order.get(&b.name).copied().unwrap_or(usize::MAX);
@@ -196,7 +196,7 @@ impl ReportGenerator {
         let mut domain_text = String::new();
         for sit in sorted_sits {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            let intents = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
+            let intents = data.2.get(&sit.name).cloned().unwrap_or_default();
             let schema = schemas.iter().find(|s| s.name == sit.name);
 
             domain_text.push_str(&format!("## {} ({})\n", label, sit.name));
@@ -379,12 +379,12 @@ impl ReportGenerator {
         out.push_str(&format!("# {} 认知工程报告\n\n", week));
 
         // — Summary —
-        let total = data.intentions.len();
-        let high_p = data.intentions.iter().filter(|i| i.priority.name == "high").count();
-        let high_r = data.intentions.iter().filter(|i| i.risk.name == "high").count();
-        let top = data.intentions.iter().filter(|i| i.level.name == "top").count();
-        let bottom = data.intentions.iter().filter(|i| i.level.name == "bottom").count();
-        let top_intents: Vec<&str> = data.intentions.iter().filter(|i| i.level.name == "top").map(|i| i.title.as_str()).collect();
+        let total = data.1.len();
+        let high_p = data.1.iter().filter(|i| i.priority.name == "high").count();
+        let high_r = data.1.iter().filter(|i| i.risk.name == "high").count();
+        let top = data.1.iter().filter(|i| i.level.name == "top").count();
+        let bottom = data.1.iter().filter(|i| i.level.name == "bottom").count();
+        let top_intents: Vec<&str> = data.1.iter().filter(|i| i.level.name == "top").map(|i| i.title.as_str()).collect();
 
         out.push_str("## 摘要\n\n");
         out.push_str(&format!(
@@ -406,7 +406,7 @@ impl ReportGenerator {
         out.push_str("## 领域描述\n\n");
         for sit in sorted_sits {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            let intents = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
+            let intents = data.2.get(&sit.name).cloned().unwrap_or_default();
             let schema = schemas.iter().find(|s| s.name == sit.name);
 
             // 图式挖掘: synthesize from frame + schema
@@ -473,11 +473,11 @@ impl ReportGenerator {
         }
 
         // Priority conflict: high-bot vs top-low
-        let high_bot: Vec<&Intention> = data.intentions.iter()
+        let high_bot: Vec<&Intention> = data.1.iter()
             .filter(|i| i.priority.name == "high" && i.level.name == "bottom").collect();
         for i in &high_bot {
             let sit_label = sorted_sits.iter()
-                .find(|s| data.intention_map.get(&s.name).map_or(false, |v| v.iter().any(|x| x.id == i.id)))
+                .find(|s| data.2.get(&s.name).map_or(false, |v| v.iter().any(|x| x.id == i.id)))
                 .and_then(|s| label_map.get(&s.name))
                 .cloned().unwrap_or_default();
             out.push_str(&format!("- 注意力竞争：{}的底层意图「{}」被标记为高优先级，说明基础事务正在争夺战略注意力。\n", sit_label, i.title));
@@ -502,7 +502,7 @@ impl ReportGenerator {
         out.push_str(&format!("# Diff: {} → {}\n\n", week_a, week_b));
 
         let mut map_a: std::collections::HashMap<&str, &Situation> = std::collections::HashMap::new();
-        for s in &data_a.situations {
+        for s in &data_a.0 {
             map_a.insert(s.name.as_str(), s);
         }
 
@@ -510,7 +510,7 @@ impl ReportGenerator {
         let mut disappeared = Vec::new();
         let mut changed = Vec::new();
 
-        for s in &data_b.situations {
+        for s in &data_b.0 {
             if !map_a.contains_key(s.name.as_str()) {
                 appeared.push(s);
             } else if let Some(old) = map_a.get(s.name.as_str()) {
@@ -519,8 +519,8 @@ impl ReportGenerator {
                 }
             }
         }
-        for s in &data_a.situations {
-            if data_b.situations.iter().all(|x| x.name != s.name) {
+        for s in &data_a.0 {
+            if data_b.0.iter().all(|x| x.name != s.name) {
                 disappeared.push(s);
             }
         }
@@ -588,14 +588,14 @@ impl ReportGenerator {
             .collect();
 
         let mut sit_descs = String::new();
-        for sit in &data.situations {
+        for sit in &data.0 {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
             sit_descs.push_str(&format!("情境「{}」({}):\n", label, sit.name));
             sit_descs.push_str(&format!("- agenda: {}\n", sit.content.agenda));
             sit_descs.push_str(&format!("- dynamics: {}\n\n", sit.content.dynamics));
         }
 
-        let total = data.situations.len();
+        let total = data.0.len();
         let prompt = format!(
             r#"你是一个情境关系分析引擎。输入一个周期的 {} 个情境，请分析两两之间的关系。
 
@@ -709,8 +709,8 @@ impl ReportGenerator {
 
         let data_a = self.engine.week(week_a).ok();
         let data_b = self.engine.week(week_b).ok();
-        let intents_a = data_a.as_ref().and_then(|d| d.intention_map.get(sit_name)).cloned().unwrap_or_default();
-        let intents_b = data_b.as_ref().and_then(|d| d.intention_map.get(sit_name)).cloned().unwrap_or_default();
+        let intents_a = data_a.as_ref().and_then(|d| d.2.get(sit_name)).cloned().unwrap_or_default();
+        let intents_b = data_b.as_ref().and_then(|d| d.2.get(sit_name)).cloned().unwrap_or_default();
 
         if intents_a.is_empty() && intents_b.is_empty() {
             return Ok(format!("No intentions for {} in {} or {}", label, week_a, week_b));
@@ -848,14 +848,14 @@ impl ReportGenerator {
         let mut out = String::new();
         out.push_str(&format!("# Intentions: {}\n\n", week));
 
-        for sit in &data.situations {
+        for sit in &data.0 {
             if let Some(ref n) = name {
                 if sit.name != *n {
                     continue;
                 }
             }
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            if let Some(intents) = data.intention_map.get(&sit.name) {
+            if let Some(intents) = data.2.get(&sit.name) {
                 out.push_str(&format!("## {}（{}）\n\n", label, sit.name));
                 for i in intents {
                     out.push_str(&format!(
@@ -949,7 +949,7 @@ impl ReportGenerator {
         let mut intent_list = String::new();
         let mut idx = 0usize;
         let mut id_map = std::collections::HashMap::new();
-        for (sn, intents) in &data.intention_map {
+        for (sn, intents) in &data.2 {
             for i in intents {
                 id_map.insert(idx, (sn.clone(), i.title.clone()));
                 intent_list.push_str(&format!(
@@ -1036,9 +1036,9 @@ impl ReportGenerator {
         out.push_str("| 情境 | 意向数 | 高优先级 | 高风险 | 顶层 | 底层 | agent:创始人 |\n");
         out.push_str("|------|--------|---------|-------|------|------|-------------|\n");
 
-        for sit in &data.situations {
+        for sit in &data.0 {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            let intents = data.intention_map.get(&sit.name);
+            let intents = data.2.get(&sit.name);
             let count = intents.map(|v| v.len()).unwrap_or(0);
             let high_p = intents.map(|v| v.iter().filter(|i| i.priority.name == "high").count()).unwrap_or(0);
             let high_r = intents.map(|v| v.iter().filter(|i| i.risk.name == "high").count()).unwrap_or(0);
@@ -1144,13 +1144,13 @@ fn compute_relations(
                 .copied()
                 .collect();
 
-            let a_has_top = data.intention_map.get(&a.name)
+            let a_has_top = data.2.get(&a.name)
                 .map(|v| v.iter().any(|i| i.level.name == "top")).unwrap_or(false);
-            let b_has_bottom = data.intention_map.get(&b.name)
+            let b_has_bottom = data.2.get(&b.name)
                 .map(|v| v.iter().any(|i| i.level.name == "bottom")).unwrap_or(false);
-            let a_has_bottom = data.intention_map.get(&a.name)
+            let a_has_bottom = data.2.get(&a.name)
                 .map(|v| v.iter().any(|i| i.level.name == "bottom")).unwrap_or(false);
-            let b_has_top = data.intention_map.get(&b.name)
+            let b_has_top = data.2.get(&b.name)
                 .map(|v| v.iter().any(|i| i.level.name == "top")).unwrap_or(false);
             let has_top_bottom = (a_has_top && b_has_bottom) || (b_has_top && a_has_bottom);
 
@@ -1208,11 +1208,11 @@ fn compute_relations(
     }
 
     out.push_str("## 附录\n\n");
-    let tension_items: Vec<&Intention> = data.intentions.iter()
+    let tension_items: Vec<&Intention> = data.1.iter()
         .filter(|i| i.risk.name == "high" && i.level.name == "top").collect();
     for i in &tension_items {
         let sit_label = sorted_sits.iter()
-            .find(|s| data.intention_map.get(&s.name)
+            .find(|s| data.2.get(&s.name)
                 .map_or(false, |v| v.iter().any(|x| x.id == i.id)))
             .and_then(|s| label_map.get(&s.name))
             .cloned().unwrap_or_default();
@@ -1228,9 +1228,9 @@ fn compute_tensions(data: &WeekData, week: &str) -> String {
     let mut top: Vec<(String, String)> = Vec::new();
     let mut bottom: Vec<(String, String)> = Vec::new();
 
-    for sit in &data.situations {
+    for sit in &data.0 {
         let label = sit.label.clone();
-        if let Some(intents) = data.intention_map.get(&sit.name) {
+        if let Some(intents) = data.2.get(&sit.name) {
             for i in intents {
                 match i.level.name.as_str() {
                     "top" => top.push((label.clone(), i.title.clone())),

@@ -6,12 +6,6 @@ pub use quanttide_think::{
     domain::Domain,
 };
 
-/// A week bundle: all situations + intentions for a given week
-#[derive(Debug, Clone)]
-pub struct WeekData {
-    pub week: String,
-    pub situations: Vec<Situation>,
-    pub intentions: Vec<Intention>,
-    /// intentions keyed by situation name
-    pub intention_map: std::collections::HashMap<String, Vec<Intention>>,
-}
+use std::collections::HashMap;
+
+pub type WeekData = (Vec<Situation>, Vec<Intention>, HashMap<String, Vec<Intention>>);
