@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
+use quanttide_agent::message::Message;
+
 use crate::models::{Intention, Schema, Situation, WeekData};
 use crate::query::QueryEngine;
 
@@ -188,7 +190,7 @@ impl ReportGenerator {
             }
         }
 
-        let client = crate::llm::DeepSeekClient::from_env()?;
+        let client = quanttide_agent::llm::LLM::default();
 
         // Build domain descriptions for prompt
         let mut domain_text = String::new();
@@ -272,8 +274,8 @@ impl ReportGenerator {
             domain_text,
         );
 
-        let raw = client.chat(&prompt)?;
-        let json = crate::llm::extract_json(&raw)?;
+        let raw = client.complete(&[Message::new("user", &prompt)], Default::default()).map_err(|e| format!("LLM: {}", e.0))?.content;
+        let json = crate::llm::parse_structured_output(&raw)?;
 
         if let Ok(content) = serde_json::to_string_pretty(&json) {
             fs::write(&cache_path, &content).ok();
@@ -675,7 +677,7 @@ impl ReportGenerator {
             }
         }
 
-        let client = crate::llm::DeepSeekClient::from_env()?;
+        let client = quanttide_agent::llm::LLM::default();
         let data = self.engine.week(week)?;
         let registry = self.engine.registry().ok();
         let label_map: std::collections::HashMap<String, String> = registry
@@ -718,8 +720,8 @@ impl ReportGenerator {
             total, sit_descs
         );
 
-        let raw = client.chat(&prompt)?;
-        let json = crate::llm::extract_json(&raw)?;
+        let raw = client.complete(&[Message::new("user", &prompt)], Default::default()).map_err(|e| format!("LLM: {}", e.0))?.content;
+        let json = crate::llm::parse_structured_output(&raw)?;
 
         // Save cache
         if let Ok(content) = serde_json::to_string_pretty(&json) {
@@ -1040,7 +1042,7 @@ impl ReportGenerator {
             }
         }
 
-        let client = crate::llm::DeepSeekClient::from_env()?;
+        let client = quanttide_agent::llm::LLM::default();
         let data = self.engine.week(week)?;
 
         let mut intent_list = String::new();
@@ -1066,8 +1068,8 @@ impl ReportGenerator {
             idx, intent_list
         );
 
-        let raw = client.chat(&prompt)?;
-        let json = crate::llm::extract_json(&raw)?;
+        let raw = client.complete(&[Message::new("user", &prompt)], Default::default()).map_err(|e| format!("LLM: {}", e.0))?.content;
+        let json = crate::llm::parse_structured_output(&raw)?;
         if let Ok(content) = serde_json::to_string_pretty(&json) {
             fs::write(&cache_path, &content).ok();
         }

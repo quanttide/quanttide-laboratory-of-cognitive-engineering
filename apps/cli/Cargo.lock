@@ -471,10 +471,19 @@ name = "project-11"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "quanttide-agent",
  "quanttide-think",
  "serde",
  "serde_json",
  "serde_yaml",
+]
+
+[[package]]
+name = "quanttide-agent"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "serde",
+ "serde_json",
  "ureq",
 ]
 
