@@ -8,3 +8,5 @@ description = "Situation Engine: gallery-based situation awareness tool"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 chrono = "0.4"
+serde_json = "1"
+ureq = { version = "2", features = ["json"] }

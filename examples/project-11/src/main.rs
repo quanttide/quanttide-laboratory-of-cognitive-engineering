@@ -20,6 +20,8 @@ fn main() -> Result<(), String> {
         println!("  explore <name>           - track situation evolution across weeks");
         println!("  registry                 - show situation registry");
         println!("  report <week>            - generate structured weekly report");
+        println!("  diff <weekA> <weekB>      - compare two weeks");
+        println!("  relate <week>            - LLM infer situation relations");
         println!("  exit                     - quit");
         return Ok(());
     }

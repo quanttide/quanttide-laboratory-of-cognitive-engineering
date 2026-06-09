@@ -25,6 +25,8 @@ impl Repl {
         println!("  explore <name>           - track situation evolution across weeks");
         println!("  registry                 - show situation registry");
         println!("  report <week>            - generate structured weekly report");
+        println!("  diff <weekA> <weekB>      - compare two weeks");
+        println!("  relate <week>            - LLM infer situation relations");
         println!("  exit                     - quit\n");
 
         let stdin = io::stdin();
@@ -45,6 +47,8 @@ impl Repl {
                     println!("  explore <name>           - track situation evolution across weeks");
                     println!("  registry                 - show situation registry");
                     println!("  report <week>            - generate structured weekly report");
+                    println!("  diff <weekA> <weekB>      - compare two weeks");
+                    println!("  relate <week>            - LLM infer situation relations");
                     println!("  exit                     - quit");
                 }
                 "weeks" => match self.engine.list_weeks() {
@@ -101,6 +105,26 @@ impl Repl {
                         continue;
                     }
                     match reporter.report(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "diff" => {
+                    if parts.len() < 3 {
+                        println!("Usage: diff <weekA> <weekB>");
+                        continue;
+                    }
+                    match reporter.diff(parts[1], parts[2]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "relate" => {
+                    if parts.len() < 2 {
+                        println!("Usage: relate <week>");
+                        continue;
+                    }
+                    match reporter.relate_llm(parts[1]) {
                         Ok(s) => println!("{}", s),
                         Err(e) => println!("Error: {}", e),
                     }

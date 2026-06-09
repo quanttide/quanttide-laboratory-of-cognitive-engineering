@@ -1,3 +1,4 @@
+use crate::models::Situation;
 use crate::query::QueryEngine;
 
 pub struct ReportGenerator {
@@ -184,6 +185,156 @@ impl ReportGenerator {
         // — Comparison —
         out.push_str("## 与前周对比\n\n");
         out.push_str("（待实现跨周差异分析）\n");
+
+        Ok(out)
+    }
+
+    /// Diff two weeks: show which situations appear/disappear/change
+    pub fn diff(&self, week_a: &str, week_b: &str) -> Result<String, String> {
+        let data_a = self.engine.week(week_a)?;
+        let data_b = self.engine.week(week_b)?;
+        let registry = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = registry
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+
+        let mut out = String::new();
+        out.push_str(&format!("# Diff: {} → {}\n\n", week_a, week_b));
+
+        let mut map_a: std::collections::HashMap<&str, &Situation> = std::collections::HashMap::new();
+        for s in &data_a.situations {
+            map_a.insert(s.name.as_str(), s);
+        }
+
+        let mut appeared = Vec::new();
+        let mut disappeared = Vec::new();
+        let mut changed = Vec::new();
+
+        for s in &data_b.situations {
+            if !map_a.contains_key(s.name.as_str()) {
+                appeared.push(s);
+            } else if let Some(old) = map_a.get(s.name.as_str()) {
+                if old.content.dynamics != s.content.dynamics {
+                    changed.push((old, s));
+                }
+            }
+        }
+        for s in &data_a.situations {
+            if data_b.situations.iter().all(|x| x.name != s.name) {
+                disappeared.push(s);
+            }
+        }
+
+        if !disappeared.is_empty() {
+            out.push_str("## 消失的情境\n\n");
+            for s in &disappeared {
+                let label = label_map.get(&s.name).cloned().unwrap_or_else(|| s.name.clone());
+                out.push_str(&format!("- {}（{}）\n", label, s.name));
+            }
+            out.push('\n');
+        }
+
+        if !appeared.is_empty() {
+            out.push_str("## 新增的情境\n\n");
+            for s in &appeared {
+                let label = label_map.get(&s.name).cloned().unwrap_or_else(|| s.name.clone());
+                out.push_str(&format!("- {}（{}）\n", label, s.name));
+            }
+            out.push('\n');
+        }
+
+        if !changed.is_empty() {
+            out.push_str("## 演化变化\n\n");
+            for (old, new) in &changed {
+                let label = label_map.get(&new.name).cloned().unwrap_or_else(|| new.name.clone());
+                out.push_str(&format!("### {}（{}）\n\n", label, new.name));
+                out.push_str(&format!("| | {} | {} |\n", week_a, week_b));
+                out.push_str("|---|------|------|\n");
+                out.push_str(&format!("| 演化 | {} | {} |\n", old.content.dynamics, new.content.dynamics));
+                out.push_str(&format!("| 意图数 | {} | {} |\n",
+                    self.engine.intentions(week_a, &new.name).map(|v| v.len()).unwrap_or(0),
+                    self.engine.intentions(week_b, &new.name).map(|v| v.len()).unwrap_or(0)
+                ));
+                out.push('\n');
+            }
+        }
+
+        if disappeared.is_empty() && appeared.is_empty() && changed.is_empty() {
+            out.push_str("两周之间无显著变化。\n");
+        }
+
+        Ok(out)
+    }
+
+    /// Infer relations between situations using LLM
+    pub fn relate_llm(&self, week: &str) -> Result<String, String> {
+        let client = crate::llm::DeepSeekClient::from_env()?;
+        let data = self.engine.week(week)?;
+        let registry = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = registry
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+
+        // Build condensed situation descriptions
+        let mut sit_descs = String::new();
+        for sit in &data.situations {
+            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
+            sit_descs.push_str(&format!("情境「{}」({}):\n", label, sit.name));
+            sit_descs.push_str(&format!("- agenda: {}\n", sit.content.agenda));
+            sit_descs.push_str(&format!("- dynamics: {}\n\n", sit.content.dynamics));
+        }
+
+        let total = data.situations.len();
+        let prompt = format!(
+            r#"你是一个情境关系分析引擎。输入一个周期的 {} 个情境，请分析两两之间的关系。
+
+关系类型：支持、冲突、触发、演化、情感补给、组件、同框
+
+每个关系输出格式：
+{{
+  "source": "情境A的name",
+  "target": "情境B的name",
+  "type": "关系类型",
+  "strength": "强/中/弱",
+  "logic": "为什么存在这个关系"
+}}
+
+请以JSON数组返回，数组每个元素是一个关系对象。
+只输出JSON，不要额外文字。
+
+## 情境列表
+
+{}
+
+"#,
+            total, sit_descs
+        );
+
+        let raw = client.chat(&prompt)?;
+        let json = crate::llm::extract_json(&raw)?;
+
+        let mut out = String::new();
+        out.push_str(&format!("# Relations: {}\n\n", week));
+
+        if let Some(arr) = json.as_array() {
+            for rel in arr {
+                let source = rel["source"].as_str().unwrap_or("?");
+                let target = rel["target"].as_str().unwrap_or("?");
+                let rtype = rel["type"].as_str().unwrap_or("?");
+                let strength = rel["strength"].as_str().unwrap_or("?");
+                let logic = rel["logic"].as_str().unwrap_or("");
+                out.push_str(&format!("- **{}** ↔ **{}**：{}（{}）\n", source, target, rtype, strength));
+                out.push_str(&format!("  {}\n", logic));
+            }
+        }
+
+        if json.as_array().map_or(true, |a| a.is_empty()) {
+            out.push_str("（未发现关系）\n");
+        }
 
         Ok(out)
     }
