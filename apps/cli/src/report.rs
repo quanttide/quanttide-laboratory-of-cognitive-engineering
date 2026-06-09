@@ -1,8 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
 
-use quanttide_think::ser::ToYaml;
-
 use crate::models::{Intention, Schema, Situation, WeekData};
 use crate::query::QueryEngine;
 
@@ -1233,7 +1231,7 @@ impl ReportGenerator {
             if !c.entities.is_empty() {
                 out.push_str("### Entities\n\n");
                 for e in &c.entities {
-                    out.push_str(&format!("- {}\n", e.to_yaml().unwrap_or_default()));
+                    out.push_str(&format!("- {}\n", serde_yaml::to_string(e).unwrap_or_default()));
                 }
             }
             if !c.causals.is_empty() {

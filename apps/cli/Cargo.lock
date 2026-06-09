@@ -474,17 +474,17 @@ dependencies = [
  "quanttide-think",
  "serde",
  "serde_json",
+ "serde_yaml",
  "ureq",
 ]
 
 [[package]]
 name = "quanttide-think"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 dependencies = [
  "chrono",
  "serde",
  "serde_json",
- "serde_yaml",
  "uuid",
 ]
 

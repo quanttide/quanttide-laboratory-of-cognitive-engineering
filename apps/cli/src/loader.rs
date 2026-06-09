@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use quanttide_think::ser::FromYaml;
-
 use crate::models::*;
 
 pub struct GalleryLoader {
@@ -22,7 +20,7 @@ impl GalleryLoader {
         let path = self.gallery_base.join("situation").join("registry.yaml");
         let content = fs::read_to_string(&path)
             .map_err(|e| format!("Failed to read registry: {}", e))?;
-        Vec::<RegistryEntry>::from_yaml(&content)
+        serde_yaml::from_str(&content)
             .map_err(|e| format!("Failed to parse registry: {}", e))
     }
 
@@ -37,7 +35,7 @@ impl GalleryLoader {
             if path.extension().map_or(false, |e| e == "yaml") {
                 let content = fs::read_to_string(&path)
                     .map_err(|e| format!("Failed to read {:?}: {}", path, e))?;
-                let sit = Situation::from_yaml(&content)
+                let sit: Situation = serde_yaml::from_str(&content)
                     .map_err(|e| format!("Failed to parse {:?}: {}", path, e))?;
                 situations.push(sit);
             }
@@ -59,7 +57,7 @@ impl GalleryLoader {
             if path.extension().map_or(false, |e| e == "yaml") {
                 let content = fs::read_to_string(&path)
                     .map_err(|e| format!("Failed to read {:?}: {}", path, e))?;
-                let mut parsed = Vec::<Intention>::from_yaml(&content)
+                let mut parsed: Vec<Intention> = serde_yaml::from_str(&content)
                     .map_err(|e| format!("Failed to parse {:?}: {}", path, e))?;
                 intentions.append(&mut parsed);
             }
@@ -80,7 +78,7 @@ impl GalleryLoader {
                 if path.extension().map_or(false, |e| e == "yaml") {
                     let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
                     if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(list) = Vec::<Intention>::from_yaml(&content) {
+                        if let Ok(list) = serde_yaml::from_str::<Vec<Intention>>(&content) {
                             intention_map.entry(stem).or_default().extend(list);
                         }
                     }
@@ -101,7 +99,7 @@ impl GalleryLoader {
         let path = self.gallery_base.join("contract").join("domain.yaml");
         let content = fs::read_to_string(&path)
             .map_err(|e| format!("Failed to read category: {}", e))?;
-        Vec::<RegistryEntry>::from_yaml(&content)
+        serde_yaml::from_str(&content)
             .map_err(|e| format!("Failed to parse category: {}", e))
     }
 
@@ -115,7 +113,7 @@ impl GalleryLoader {
         if content.trim().is_empty() {
             return Ok(Vec::new());
         }
-        Vec::<Schema>::from_yaml(&content)
+        serde_yaml::from_str(&content)
             .map_err(|e| format!("Failed to parse schema {}: {}", week, e))
     }
 
