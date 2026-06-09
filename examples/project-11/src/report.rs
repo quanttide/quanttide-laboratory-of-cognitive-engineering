@@ -198,37 +198,68 @@ impl ReportGenerator {
             out.push_str("\n---\n\n");
         }
 
-        // — Try loading cached situation relations —
+        // — Relations: merge situation + intention —
+        let mut has_relations = false;
         let rel_path = self.reports_dir(week).join("relations.json");
-        if let Ok(content) = fs::read_to_string(&rel_path) {
-            if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
-                out.push_str("## 情境关系\n\n");
-                for rel in &arr {
-                    let s = rel["source"].as_str().unwrap_or("?");
-                    let t = rel["target"].as_str().unwrap_or("?");
-                    let r = rel["type"].as_str().unwrap_or("?");
-                    let st = rel["strength"].as_str().unwrap_or("?");
-                    let l = rel["logic"].as_str().unwrap_or("");
-                    out.push_str(&format!("- **{}** ↔ **{}**：{}（{}）\n  {}\n", s, t, r, st, l));
+        let irel_path = self.reports_dir(week).join("intention-relations.json");
+
+        // Build index map for intention relations: idx → title
+        let mut idx_map: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
+        if irel_path.exists() {
+            let mut i = 0usize;
+            for (_, intents) in &data.intention_map {
+                for intent in intents {
+                    idx_map.insert(i, intent.title.clone());
+                    i += 1;
                 }
-                out.push('\n');
             }
         }
 
-        // — Try loading cached intention relations —
-        let irel_path = self.reports_dir(week).join("intention-relations.json");
-        if let Ok(content) = fs::read_to_string(&irel_path) {
-            if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
-                out.push_str("## 意图关系\n\n");
-                for rel in &arr {
-                    let s = rel["source"].as_u64().unwrap_or(999);
-                    let t = rel["target"].as_u64().unwrap_or(999);
-                    let rtype = rel["type"].as_str().unwrap_or("?");
-                    let logic = rel["logic"].as_str().unwrap_or("");
-                    out.push_str(&format!("- [{}] → [{}]：{} — {}\n", s, t, rtype, logic));
+        let rel_ok = rel_path.exists();
+        let irel_ok = irel_path.exists();
+
+        if rel_ok || irel_ok {
+            has_relations = true;
+            out.push_str("## 关系分析\n\n");
+
+            if rel_ok {
+                if let Ok(content) = fs::read_to_string(&rel_path) {
+                    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                        out.push_str("### 情境层\n\n");
+                        for rel in &arr {
+                            let s = rel["source"].as_str().unwrap_or("?");
+                            let t = rel["target"].as_str().unwrap_or("?");
+                            let r = rel["type"].as_str().unwrap_or("?");
+                            let st = rel["strength"].as_str().unwrap_or("?");
+                            let l = rel["logic"].as_str().unwrap_or("");
+                            out.push_str(&format!("- **{}** ↔ **{}**：{}（{}）\n  {}\n", s, t, r, st, l));
+                        }
+                        out.push('\n');
+                    }
                 }
-                out.push('\n');
             }
+
+            if irel_ok {
+                if let Ok(content) = fs::read_to_string(&irel_path) {
+                    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                        out.push_str("### 意图层\n\n");
+                        for rel in &arr {
+                            let si = rel["source"].as_u64().unwrap_or(999) as usize;
+                            let ti = rel["target"].as_u64().unwrap_or(999) as usize;
+                            let stitle = idx_map.get(&si).map(|s| s.as_str()).unwrap_or("?");
+                            let ttitle = idx_map.get(&ti).map(|s| s.as_str()).unwrap_or("?");
+                            let rtype = rel["type"].as_str().unwrap_or("?");
+                            let logic = rel["logic"].as_str().unwrap_or("");
+                            out.push_str(&format!("- **{}** → **{}**：{} — {}\n", stitle, ttitle, rtype, logic));
+                        }
+                        out.push('\n');
+                    }
+                }
+            }
+        }
+
+        if !has_relations {
+            out.push_str("## 关系分析\n\n（运行 `relate` 和 `ri` 生成）\n\n");
         }
 
         // — Drift from previous week —
