@@ -1,3 +1,6 @@
+use std::fs;
+use std::path::PathBuf;
+
 use crate::models::Situation;
 use crate::query::QueryEngine;
 
@@ -118,6 +121,12 @@ impl ReportGenerator {
         Ok(out)
     }
 
+    fn reports_dir(&self, week: &str) -> PathBuf {
+        let dir = PathBuf::from("reports").join(week);
+        fs::create_dir_all(&dir).ok();
+        dir
+    }
+
     /// Generate a structured weekly report (six-feature template)
     pub fn report(&self, week: &str) -> Result<String, String> {
         let data = self.engine.week(week)?;
@@ -174,17 +183,38 @@ impl ReportGenerator {
             out.push_str("\n---\n\n");
         }
 
-        // — Relations (placeholder) —
-        out.push_str("## 关键关系\n\n");
-        out.push_str("（待 LLM 推理）\n\n");
+        // — Try loading cached relations —
+        let rel_path = self.reports_dir(week).join("relations.json");
+        if let Ok(content) = fs::read_to_string(&rel_path) {
+            out.push_str("## 关键关系\n\n");
+            if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                for rel in &arr {
+                    let s = rel["source"].as_str().unwrap_or("?");
+                    let t = rel["target"].as_str().unwrap_or("?");
+                    let r = rel["type"].as_str().unwrap_or("?");
+                    let st = rel["strength"].as_str().unwrap_or("?");
+                    let l = rel["logic"].as_str().unwrap_or("");
+                    out.push_str(&format!("- **{}** ↔ **{}**：{}（{}）\n  {}\n", s, t, r, st, l));
+                }
+            }
+            out.push('\n');
+        } else {
+            out.push_str("## 关键关系\n\n");
+            out.push_str("（运行 `relate` 生成）\n\n");
+        }
 
-        // — Mental Models (placeholder) —
+        // — Mental Models placeholder —
         out.push_str("## 跨情境心智模型\n\n");
-        out.push_str("（待 LLM 推理）\n\n");
+        out.push_str("（待推理）\n\n");
 
         // — Comparison —
         out.push_str("## 与前周对比\n\n");
         out.push_str("（待实现跨周差异分析）\n");
+
+        // Save report
+        let report_path = self.reports_dir(week).join("report.md");
+        fs::write(&report_path, &out).ok();
+        println!("Report saved to: {:?}", report_path);
 
         Ok(out)
     }
@@ -268,8 +298,18 @@ impl ReportGenerator {
         Ok(out)
     }
 
-    /// Infer relations between situations using LLM
+    /// Infer relations between situations using LLM, with caching
     pub fn relate_llm(&self, week: &str) -> Result<String, String> {
+        let cache_path = self.reports_dir(week).join("relations.json");
+
+        // Check cache
+        if let Ok(content) = fs::read_to_string(&cache_path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                eprintln!("(loaded cached relations from {:?})", cache_path);
+                return Self::format_relations(week, &json);
+            }
+        }
+
         let client = crate::llm::DeepSeekClient::from_env()?;
         let data = self.engine.week(week)?;
         let registry = self.engine.registry().ok();
@@ -279,7 +319,6 @@ impl ReportGenerator {
             .map(|e| (e.name, e.label))
             .collect();
 
-        // Build condensed situation descriptions
         let mut sit_descs = String::new();
         for sit in &data.situations {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
@@ -317,6 +356,16 @@ impl ReportGenerator {
         let raw = client.chat(&prompt)?;
         let json = crate::llm::extract_json(&raw)?;
 
+        // Save cache
+        if let Ok(content) = serde_json::to_string_pretty(&json) {
+            fs::write(&cache_path, &content).ok();
+            eprintln!("(cached relations to {:?})", cache_path);
+        }
+
+        Self::format_relations(week, &json)
+    }
+
+    fn format_relations(week: &str, json: &serde_json::Value) -> Result<String, String> {
         let mut out = String::new();
         out.push_str(&format!("# Relations: {}\n\n", week));
 
