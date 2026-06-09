@@ -95,9 +95,9 @@ impl GalleryLoader {
         })
     }
 
-    /// Load category registry (ordered list of situations from contract/category.yaml)
+    /// Load domain registry (ordered list of situations from contract/domain.yaml)
     pub fn load_category(&self) -> Result<Vec<RegistryEntry>, String> {
-        let path = self.gallery_base.join("contract").join("category.yaml");
+        let path = self.gallery_base.join("contract").join("domain.yaml");
         let content = fs::read_to_string(&path)
             .map_err(|e| format!("Failed to read category: {}", e))?;
         serde_yaml::from_str(&content)
