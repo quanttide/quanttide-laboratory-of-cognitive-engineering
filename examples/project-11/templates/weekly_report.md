@@ -8,79 +8,37 @@
 {{core_finding}}
 
 
-## 行动建议
+{{#domains}}
 
-| 优先级 | 行动 | 负责人 | 时限 | 预期效果 |
-|--------|------|-------|------|---------|
-{{#actions}}
-| {{priority}} | {{action}} | {{owner}} | {{deadline}} | {{expected}} |
-{{/actions}}
+## {{label}}
 
+### 心智模型
 
-## 全景
+{{#schemas}}
+- **{{label}}**：{{usage}}
+  - 因果：{{#causals}}IF {{condition}} → {{outcome}}；{{/causals}}
+  - 偏差：{{#biases}}{{belief}}（{{fact}}）{{/biases}}
+{{/schemas}}
 
-{{situation_count}} 个情境 · {{intention_count}} 条意向 · 高优先 {{high_p}} · 高风险 {{high_r}}
+### 情境意识
 
-| 情境 | 意向 | 优先级 | 风险 |
-|------|------|--------|------|
-{{#situations}}
-| {{label}} | {{count}} | {{priority}} | {{risk}} |
-{{/situations}}
+{{ecology}}
 
+{{frame}}
 
-## 重点分析
+### 意图识别
 
-{{#spotlights}}
-
-### {{label}}
-
-**演化**：{{dynamics}}
-
-**所以**：{{implication}}
-
-| 意向 | 优先级 | 风险 |
-|------|--------|------|
+| 意向 | 层级 | 优先级 | 风险 | 触发 |
+|------|------|--------|------|------|
 {{#intentions}}
-| {{title}} | {{priority}} | {{risk}} |
+| {{title}} | {{level}} | {{priority}} | {{risk}} | {{trigger}} |
 {{/intentions}}
-
-{{/spotlights}}
-
-
-## 关键关系
 
 {{#relations}}
 
-- **{{source}}** → **{{target}}**：{{type}}（{{strength}}）
-  {{logic}} [{{confidence}}]
-
+**关系**：{{source}} → {{target}}：{{type}}（{{strength}}）— {{logic}} [{{confidence}}]
 {{/relations}}
 
+---
 
-## 心智模型
-
-{{#schemas}}
-
-### {{label}}
-
-{{#causals}}
-- IF {{condition}} → {{outcome}}
-{{/causals}}
-{{#biases}}
-- 偏差：{{belief}}（事实：{{fact}}）
-{{/biases}}
-
-{{/schemas}}
-
-
-## 变化
-
-{{#changes}}
-
-| 情境 | 变化 | 含义 |
-|------|------|------|
-{{#items}}
-| {{label}} | {{change}} | {{meaning}} |
-{{/items}}
-
-{{/changes}}
+{{/domains}}
