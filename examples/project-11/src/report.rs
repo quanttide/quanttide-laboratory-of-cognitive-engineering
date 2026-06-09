@@ -1119,7 +1119,7 @@ impl ReportGenerator {
 每个 schema 格式：
 {{
   "id": "uuid",
-  "label": "名称",
+  "label": "简短名称（不加'心智模型'后缀）",
   "entities": [{{"实体名": ["属性1", "属性2"]}}],
   "causals": [{{"condition": "条件", "outcome": "结果"}}],
   "boundaries": ["边界1", "边界2"],
@@ -1131,7 +1131,7 @@ impl ReportGenerator {
 示例：
 {{
   "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "label": "智能恒温器心智模型",
+  "label": "恒温器控制",
   "entities": [{{"thermostat": ["current_temperature", "target_temperature", "mode: heat/cool/auto"]}}, {{"sensor": ["measures_indoor_temperature"]}}],
   "causals": [{{"condition": "target_temperature > current_temperature", "outcome": "设备开始制热"}}, {{"condition": "target_temperature <= current_temperature", "outcome": "设备停止工作"}}],
   "boundaries": ["仅适用于住宅单一房间", "忽略室外温度影响"],

@@ -1,273 +1,262 @@
 - biases:
-  - belief: POC成功即代表可大规模复制
-    fact: POC成功仅验证局部可行性，规模化需额外条件
-    id: b1c2d3e4-...
+  - belief: 低门槛验证成功即代表商业模式可行
+    fact: 验证仅证明路线可行，未覆盖规模化后的市场风险
+    id: b1c2d3e4-f5a6-7890-abcd-ef1234567891
   boundaries:
-  - 适用于不确定性高的探索场景
-  - 不适用于已成熟稳定的业务
+  - 适用于商业模式探索
+  - 忽略验证后规模化风险
   causals:
   - condition: 新想法通过低门槛验证
-    outcome: 进入结构化复制阶段
-  - condition: 验证失败
-    outcome: 低成本放弃或调整方向
+    outcome: 可行后结构化复制
+  - condition: 验证不可行
+    outcome: 低成本放弃
   dynamics:
-    复制速度: 取决于结构化程度
+    复制速度: 逐步加速
     验证成本: 低
   entities:
-  - POC:
-    - 低门槛验证
-    - 可行性验证
-    - 结构化复制
   - 新想法:
-    - 商业模式
-    - 研发项目
-    - 写作云原型
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567891
-  label: POC驱动探索心智模型
+    - 低门槛验证
+    - 结构化复制
+  - POC:
+    - 验证可行性
+    - 范式同构
+  id: f1a2b3c4-d5e6-7890-abcd-ef1234567890
+  label: 低门槛验证驱动结构化复制
   mappings:
-  - action: 设计并执行最小可行POC
-    intent: 验证新想法可行性
-  - action: 控制POC投入成本与时间
+  - action: 设计低门槛POC
+    intent: 探索可持续商业模式
+  - action: 先验证后复制
     intent: 降低探索风险
 - biases:
-  - belief: 元意图是次要的，可被压缩
-    fact: 元意图是其他意图的基础，压缩会导致系统崩溃
-    id: b2c3d4e5-...
+  - belief: 高压探索中无意义感是失败信号
+    fact: 无意义感是高压探索的常见副产品，需对冲而非放弃
+    id: b2c3d4e5-f6a7-8901-abcd-ef1234567893
   boundaries:
-  - 适用于高压多任务环境
-  - 不适用于短期冲刺型任务
+  - 适用于高压探索环境
+  - 忽略外部突发事件对心理的冲击
   causals:
-  - condition: 元意图得到维护
-    outcome: 子意图可持续运作
-  - condition: 元意图被忽视
-    outcome: 子意图出现无意义感或疲劳
+  - condition: 元意图被维护
+    outcome: 其他意图可持续运作
+  - condition: 无意义感积累
+    outcome: 系统崩溃风险增加
   dynamics:
-    恢复周期: 1-2天
-    维护频率: 每日
+    心理调节频率: 每日
+    恢复时间: 数小时
   entities:
   - 元意图:
-    - 心理可持续性
-    - 工作节奏调节
-  - 子意图:
-    - 商务拓展
-    - 产品研发
-    - 创新管理
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567892
-  label: 元意图调节心智模型
+    - 保障其他意图运作
+    - 基础条件
+  - 无意义感:
+    - 高压探索副产品
+    - 需对冲机制
+  id: f2b3c4d5-e6f7-8901-abcd-ef1234567892
+  label: 元意图保障系统可持续性
   mappings:
-  - action: 优先保障睡眠与低耗能模式
-    intent: 保持长期工作动力
-  - action: 通过整合带来清晰感
-    intent: 应对无意义感
+  - action: 调节工作节奏
+    intent: 维护心理可持续性
+  - action: 整合带来清晰感
+    intent: 对冲无意义感
 - biases:
-  - belief: 治理就是制定更多规则
-    fact: 过度规则化反而增加复杂度，需平衡抽象与实用
-    id: b3c4d5e6-...
+  - belief: 更多抽象和自动化总是更好
+    fact: 过度抽象本身引入复杂性和风险
+    id: b3c4d5e6-f7a8-9012-abcd-ef1234567895
   boundaries:
-  - 适用于多工具多平台环境
+  - 适用于技术基础设施
   - 过度抽象本身也是风险
   causals:
-  - condition: 被动防守为主
+  - condition: 采用被动防守策略
     outcome: 风险累积且响应滞后
-  - condition: 主动设计治理体系
+  - condition: 采用主动设计
     outcome: 风险可控且系统稳定
   dynamics:
-    抽象风险: 随复杂度增加
-    治理成熟度: 从被动到主动
+    抽象层级: 适度
+    治理成熟度: 逐步提升
   entities:
   - 基础设施:
-    - 备份
-    - 工具链
-    - 云端同步
+    - 自动化链条
+    - 工具链分工
   - 治理体系:
-    - 标准化
     - 主动设计
-    - 消息队列
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567893
-  label: 体系化治理心智模型
+    - 标准化
+  id: f3c4d5e6-f7a8-9012-abcd-ef1234567894
+  label: 体系化治理替代被动防守
   mappings:
-  - action: 设计自动化备份与恢复机制
-    intent: 防止数据丢失
-  - action: 制定工具链归属与标准化规则
-    intent: 理清工具分工
+  - action: 主动设计消息队列和工具链分工
+    intent: 构建安全可靠平台
+  - action: 建立标准化治理体系
+    intent: 理清工具链归属
 - biases:
-  - belief: AI可以独立完成洞察发现
-    fact: 人类反馈是打破AI局部最优的关键
-    id: b4c5d6e7-...
+  - belief: AI补全越多越好
+    fact: 人类洞察是打破AI局部最优的关键
+    id: b4d5e6f7-a8b9-0123-abcd-ef1234567897
   boundaries:
-  - 适用于创意与探索任务
-  - 不适用于纯执行型任务
+  - 适用于研发探索
+  - 忽略AI完全自主时的风险
   causals:
   - condition: 人类提供洞察
-    outcome: AI补全整合形成闭环
-  - condition: 缺乏人类反馈
-    outcome: AI陷入局部最优不跳出框架
+    outcome: AI补全整合形成上升循环
+  - condition: 低耗能模式维持
+    outcome: 验证系统自动化程度
   dynamics:
-    协作效率: 取决于人类反馈质量
-    收敛速度: 随辩论次数增加
+    协作效率: 高
+    耗能水平: 低
   entities:
   - 人类:
     - 提供洞察
     - 打破局部最优
   - AI:
     - 补全整合
-    - 自收敛
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567894
-  label: 人机协作循环心智模型
+    - 降低压力
+  id: f4d5e6f7-a8b9-0123-abcd-ef1234567896
+  label: 人类洞察与AI补全协作循环
   mappings:
-  - action: 启动POC并记录默认日志
-    intent: 发现新洞察
-  - action: 通过辩论模型生成章程
-    intent: 收敛知识
+  - action: 以POC为核心
+    intent: 快速探索新想法
+  - action: 利用AI补全器模式
+    intent: 维持低耗能产出
 - biases:
-  - belief: 标准化是终点工作
-    fact: 标准化是元智能成熟度的自然产出
-    id: b5c6d7e8-...
+  - belief: 标准化是制定规则文档
+    fact: 标准化是系统自我维护的元能力
+    id: b5e6f7a8-b9c0-1234-abcd-ef1234567899
   boundaries:
-  - 适用于长期演化的系统
-  - 不适用于一次性项目
+  - 适用于治理体系
+  - 忽略外部环境变化对标准化的影响
   causals:
   - condition: 元智能成熟度高
-    outcome: 系统能自我维护标准化
+    outcome: 标准化自然产出
   - condition: 元智能成熟度低
-    outcome: 标准化依赖一次性人工干预
+    outcome: 标准化依赖外部强制
   dynamics:
-    成熟度提升: 随迭代自然增长
-    维护成本: 随成熟度降低
+    成熟度提升速度: 缓慢
+    标准化产出: 持续
   entities:
   - 元智能:
-    - 标准化能力
-    - 自我维护
-    - 系统成熟度
+    - 成熟度
+    - 系统自我维护能力
   - 标准化:
-    - 规则文档
-    - 缩写归并
-    - 边界稳定
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567895
-  label: 元智能成熟度心智模型
+    - 自然产出
+    - 非一次性工作
+  id: f5e6f7a8-b9c0-1234-abcd-ef1234567898
+  label: 元智能成熟度驱动标准化
   mappings:
-  - action: 提升元智能而非制定更多规则
-    intent: 实现系统自维护
-  - action: 确保边界稳定清晰
-    intent: 标志1.0版本
+  - action: 提升元智能成熟度
+    intent: 确立标准化体系
+  - action: 归并缩写规则
+    intent: 减少规则冗余
 - biases:
-  - belief: 制度化能解决所有问题
-    fact: 过度制度化会丧失组织温度，需保留弹性
-    id: b6c7d8e9-...
+  - belief: 制度化能解决所有团队问题
+    fact: 过度制度化会丧失组织温度
+    id: b6f7a8b9-c0d1-2345-abcd-ef1234567891
   boundaries:
-  - 适用于初创到成熟转型期
-  - 制度化可能丧失人治温度
+  - 适用于初创团队
+  - 忽略外部招聘市场的影响
   causals:
-  - condition: 经历压力测试并维持基本盘
-    outcome: 组织韧性提升
-  - condition: 简单招人补位
-    outcome: 根本问题未解决
+  - condition: 关键岗位离职
+    outcome: 团队韧性经受压力测试
+  - condition: 过度制度化
+    outcome: 丧失人治时期的组织温度
   dynamics:
-    温度: 随制度化降低
-    韧性: 随压力测试增加
+    制度化程度: 需平衡
+    韧性提升: 通过压力测试
   entities:
-  - 组织:
-    - 团队韧性
-    - 人治温度
-    - 制度化
-  - 压力测试:
-    - 财务离职
-    - 招聘断层
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567896
-  label: 反脆弱组织转型心智模型
+  - 团队:
+    - 韧性
+    - 个人关系纽带
+  - 制度:
+    - 规范化
+    - 组织温度丧失
+  id: f6f7a8b9-c0d1-2345-abcd-ef1234567890
+  label: 反脆弱压力测试与制度化平衡
   mappings:
-  - action: 设计反脆弱机制而非单纯补位
-    intent: 提升团队韧性
-  - action: 平衡制度化与人治温度
+  - action: 维持基本盘并测试韧性
+    intent: 建立反脆弱机制
+  - action: 从人治过渡到法治
     intent: 实现文化转型
 - biases:
-  - belief: UI技巧可解决交互问题
-    fact: 需要范式级重构而非UI微调
-    id: b7c8d9e0-...
+  - belief: 现有编辑器可扩展适应AI
+    fact: AI表达已超越传统文档工具能力边界
+    id: b7a8b9c0-d1e2-3456-abcd-ef1234567893
   boundaries:
   - 适用于AI协作场景
-  - 不适用于传统文档编辑
+  - 忽略用户学习成本
   causals:
-  - condition: AI表达超出传统工具能力
+  - condition: AI表达超越传统工具
     outcome: 需要重新设计交互范式
-  - condition: 沿用旧范式
-    outcome: 无法适应AI协作
+  - condition: 采用分解组件设计
+    outcome: 缓解AI注意力不足
   dynamics:
-    范式适配度: 随AI表达复杂度变化
-    设计周期: 较长
+    用户适应时间: 长
+    范式迭代速度: 快
   entities:
   - AI表达:
     - 多样化
-    - 超越传统工具
+    - 超越传统工具能力
   - 交互范式:
-    - 阅读器
-    - 块编辑器
-    - 可编辑阅读器
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567897
-  label: 范式级交互设计心智模型
+    - 阅读器角度
+    - 块编辑器思想
+  id: f7a8b9c0-d1e2-3456-abcd-ef1234567892
+  label: 范式级交互设计适应AI表达
   mappings:
-  - action: 从阅读器角度重新设计交互
+  - action: 从阅读器角度设计交互
     intent: 适应AI多样化表达
-  - action: 采用分解组件设计
+  - action: 分解组件设计
     intent: 缓解AI注意力不足
 - biases:
-  - belief: AI可自主完成意图发现
-    fact: 人类反馈是打破局部最优的必要条件
-    id: b8c9d0e1-...
+  - belief: AI可自行收敛到最优解
+    fact: 人类反馈是打破AI局部最优的关键
+    id: b8b9c0d1-e2f3-4567-abcd-ef1234567895
   boundaries:
-  - 适用于认知工程与知识发现
-  - 不适用于确定性任务
+  - 适用于认知工程
+  - 忽略AI完全自收敛场景
   causals:
-  - condition: 人类反馈介入辩论
-    outcome: AI跳出局部最优并生成章程
-  - condition: 无人类反馈
-    outcome: AI自收敛不跳出框架
+  - condition: 人类提供反馈
+    outcome: AI跳出局部最优
+  - condition: 辩论持续
+    outcome: 自然产出章程类结构化知识
   dynamics:
-    章程质量: 随反馈质量提升
-    辩论深度: 随迭代增加
+    产出质量: 高
+    辩论深度: 逐步加深
   entities:
-  - 意图工程:
-    - 人类意图驱动
-    - 统一框架
-  - 辩论模型:
-    - 人机辩论
+  - 人类反馈:
+    - 打破AI局部最优
+    - 关键
+  - 辩论:
+    - 意图发现
     - 章程生成
-    - 打破局部最优
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567898
-  label: 意图工程认知框架心智模型
+  id: f8b9c0d1-e2f3-4567-abcd-ef1234567894
+  label: 人机辩论驱动意图发现
   mappings:
-  - action: 启动人机辩论模型
-    intent: 发现并收敛意图
-  - action: 将辩论产物转化为章程
-    intent: 结构化知识产出
+  - action: 进行人机辩论
+    intent: 发现意图
+  - action: 以意图工程为核心方法论
+    intent: 收敛知识
 - biases:
-  - belief: 框架可一次性设计完成
-    fact: 框架需通过原型验证和迭代逐步成型
-    id: b9c0d1e2-...
+  - belief: 原型验证后可直接大规模应用
+    fact: 需要从原型到框架的迭代过程
+    id: b9c0d1e2-f3a4-5678-abcd-ef1234567897
   boundaries:
-  - 适用于创意写作领域
-  - 不适用于结构化文档生成
+  - 适用于叙事工程
+  - 忽略外部市场反馈
   causals:
   - condition: 原型验证成功
     outcome: 进入框架成型阶段
-  - condition: 碎片持续整合
-    outcome: 推动上升循环
+  - condition: 整合力量推动
+    outcome: 上升循环持续
   dynamics:
-    框架成熟度: 随迭代增加
-    迭代速度: 取决于整合效率
+    整合力度: 逐步增强
+    迭代速度: 中等
   entities:
   - 写作云:
     - 原型
-    - 碎片整合
-    - 3R方法论
-  - 叙事工程:
-    - 母题
-    - 风格
-    - 故事本体
-  id: a1b2c3d4-e5f6-7890-abcd-ef1234567899
-  label: 迭代式框架成型心智模型
+    - 框架成型
+  - 3R方法论:
+    - Review
+    - Reflection
+    - Rewrite
+  id: f9c0d1e2-f3a4-5678-abcd-ef1234567896
+  label: 原型验证到框架成型迭代
   mappings:
-  - action: 应用3R方法论进行迭代
-    intent: 打磨写作云
-  - action: 明确母题与风格的范畴关系
-    intent: 构建叙事框架
+  - action: 应用3R方法论
+    intent: 打磨写作云框架
+  - action: 整合母题和风格范畴
+    intent: 推动上升循环
