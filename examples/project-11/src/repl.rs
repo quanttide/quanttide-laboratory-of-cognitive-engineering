@@ -29,7 +29,10 @@ impl Repl {
         println!("  relate <week>            - LLM infer situation relations");
         println!("  intentions [week] [name]  - list intentions");
         println!("  intention <id>           - show intention detail");
-        println!("  filter --week <w> --sit <n> --priority <p> --risk <r> --level <l> --agent <a>");
+        println!("  filter <options>         - filter intentions");
+        println!("  trace <title>            - find intention across weeks");
+        println!("  drift <weekA> <weekB> <name> - compare priority/risk shift");
+        println!("  evolve <name>            - intention evolution table");
         println!("  exit                     - quit\n");
 
         let stdin = io::stdin();
@@ -166,6 +169,38 @@ impl Repl {
                         continue;
                     }
                     match reporter.show_intention(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "trace" => {
+                    if parts.len() < 2 {
+                        println!("Usage: trace <title>");
+                        continue;
+                    }
+                    let title = parts[1..].join(" ");
+                    match reporter.trace(&title) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "drift" => {
+                    if parts.len() < 3 {
+                        println!("Usage: drift <weekA> <weekB> <sit_name>");
+                        continue;
+                    }
+                    let sit_name = parts.get(3).map(|s| *s).unwrap_or("");
+                    match reporter.drift(parts[1], parts[2], sit_name) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "evolve" => {
+                    if parts.len() < 2 {
+                        println!("Usage: evolve <sit_name>");
+                        continue;
+                    }
+                    match reporter.evolution_table(parts[1]) {
                         Ok(s) => println!("{}", s),
                         Err(e) => println!("Error: {}", e),
                     }

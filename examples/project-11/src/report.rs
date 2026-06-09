@@ -388,6 +388,183 @@ impl ReportGenerator {
         Ok(out)
     }
 
+    // ── Phase 2: Cross-week intention tracking ──
+
+    /// Trace an intention title across weeks by substring match
+    pub fn trace(&self, title: &str) -> Result<String, String> {
+        let results = self.engine.all_intentions(None, None, None, None, None, None)?;
+        let reg = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = reg
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+
+        let matched: Vec<_> = results
+            .into_iter()
+            .filter(|(_, _, i)| i.title.contains(title))
+            .collect();
+
+        if matched.is_empty() {
+            return Ok(format!("No intentions match '{}'", title));
+        }
+
+        let mut out = String::new();
+        out.push_str(&format!("# Trace: '{}'\n\n", title));
+        out.push_str("| Week | Situation | Title | Priority | Risk | Level |\n");
+        out.push_str("|------|-----------|-------|----------|------|-------|\n");
+        for (w, sn, i) in &matched {
+            let label = label_map.get(sn.as_str()).cloned().unwrap_or_else(|| sn.clone());
+            out.push_str(&format!(
+                "| {} | {} | {} | {} | {} | {} |\n",
+                w, label, i.title, i.priority.label, i.risk.label, i.level.label
+            ));
+        }
+        out.push_str(&format!("\n{} matches across {} weeks\n", matched.len(), {
+            let mut weeks: Vec<_> = matched.iter().map(|(w, _, _)| w.as_str()).collect();
+            weeks.sort();
+            weeks.dedup();
+            weeks.len()
+        }));
+        Ok(out)
+    }
+
+    /// Drift: compare intention priority/risk shifts for a situation across two weeks
+    pub fn drift(&self, week_a: &str, week_b: &str, sit_name: &str) -> Result<String, String> {
+        let reg = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = reg
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+        let label = label_map.get(sit_name).cloned().unwrap_or_else(|| sit_name.to_string());
+
+        let data_a = self.engine.week(week_a).ok();
+        let data_b = self.engine.week(week_b).ok();
+        let intents_a = data_a.as_ref().and_then(|d| d.intention_map.get(sit_name)).cloned().unwrap_or_default();
+        let intents_b = data_b.as_ref().and_then(|d| d.intention_map.get(sit_name)).cloned().unwrap_or_default();
+
+        if intents_a.is_empty() && intents_b.is_empty() {
+            return Ok(format!("No intentions for {} in {} or {}", label, week_a, week_b));
+        }
+
+        let mut out = String::new();
+        out.push_str(&format!("# Drift: {} ({})\n\n", label, sit_name));
+        out.push_str(&format!("Comparing {} → {}\n\n", week_a, week_b));
+
+        // Match intentions by title
+        let mut matched = Vec::new();
+        for a in &intents_a {
+            for b in &intents_b {
+                if a.title == b.title {
+                    let prio_drift = if a.priority.name != b.priority.name {
+                        format!("{} → {}", a.priority.label, b.priority.label)
+                    } else {
+                        format!("{} (不变)", a.priority.label)
+                    };
+                    let risk_drift = if a.risk.name != b.risk.name {
+                        format!("{} → {}", a.risk.label, b.risk.label)
+                    } else {
+                        format!("{} (不变)", a.risk.label)
+                    };
+                    matched.push((a.title.clone(), prio_drift, risk_drift));
+                }
+            }
+        }
+
+        // Unmatched in A
+        let unmatched_a: Vec<_> = intents_a.iter().filter(|a| !intents_b.iter().any(|b| b.title == a.title)).collect();
+        // Unmatched in B (new)
+        let unmatched_b: Vec<_> = intents_b.iter().filter(|b| !intents_a.iter().any(|a| a.title == b.title)).collect();
+
+        if !matched.is_empty() {
+            out.push_str("### 匹配的意向\n\n");
+            out.push_str("| 意向 | Priority 变化 | Risk 变化 |\n");
+            out.push_str("|------|-------------|----------|\n");
+            for (t, p, r) in &matched {
+                out.push_str(&format!("| {} | {} | {} |\n", t, p, r));
+            }
+            out.push('\n');
+        }
+
+        if !unmatched_a.is_empty() {
+            out.push_str(&format!("### 仅在 {} 存在\n\n", week_a));
+            for i in &unmatched_a {
+                out.push_str(&format!("- {} [{}]\n", i.title, i.priority.label));
+            }
+            out.push('\n');
+        }
+
+        if !unmatched_b.is_empty() {
+            out.push_str(&format!("### 仅在 {} 存在（新增）\n\n", week_b));
+            for i in &unmatched_b {
+                out.push_str(&format!("- {} [{}]\n", i.title, i.priority.label));
+            }
+            out.push('\n');
+        }
+
+        Ok(out)
+    }
+
+    /// Intention evolution table: show all intentions for a situation across weeks
+    pub fn evolution_table(&self, sit_name: &str) -> Result<String, String> {
+        let results = self.engine.all_intentions(None, Some(sit_name), None, None, None, None)?;
+        let reg = self.engine.registry().ok();
+        let label_map: std::collections::HashMap<String, String> = reg
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| (e.name, e.label))
+            .collect();
+        let label = label_map.get(sit_name).cloned().unwrap_or_else(|| sit_name.to_string());
+
+        if results.is_empty() {
+            return Ok(format!("No intentions for {} ({})", label, sit_name));
+        }
+
+        // Group by title
+        let mut by_title: std::collections::BTreeMap<String, Vec<(String, String, String)>> = std::collections::BTreeMap::new();
+        // (week, priority, risk)
+        for (w, _, i) in &results {
+            by_title
+                .entry(i.title.clone())
+                .or_default()
+                .push((w.clone(), i.priority.label.clone(), i.risk.label.clone()));
+        }
+
+        let mut out = String::new();
+        out.push_str(&format!("# 意图演化：{}（{}）\n\n", label, sit_name));
+        out.push_str("| 意向 |", );
+
+        // collect all weeks
+        let mut all_weeks: Vec<&str> = results.iter().map(|(w, _, _)| w.as_str()).collect();
+        all_weeks.sort();
+        all_weeks.dedup();
+        for w in &all_weeks {
+            out.push_str(&format!(" {} | {} |", w, w));
+        }
+        out.push_str("\n|------|");
+        for _ in &all_weeks {
+            out.push_str("--------|-------|");
+        }
+        out.push('\n');
+
+        for (title, entries) in &by_title {
+            out.push_str(&format!("| {} |", title));
+            for w in &all_weeks {
+                if let Some((_, p, r)) = entries.iter().find(|(ww, _, _)| ww == w) {
+                    out.push_str(&format!(" {} | {} |", p, r));
+                } else {
+                    out.push_str(" - | - |");
+                }
+            }
+            out.push('\n');
+        }
+
+        out.push('\n');
+        out.push_str(&format!("{} unique intentions across {} weeks\n", by_title.len(), all_weeks.len()));
+        Ok(out)
+    }
+
     // ── Intention queries ──
 
     /// List intentions for a week, optionally filtered by situation name
