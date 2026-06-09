@@ -22,10 +22,12 @@
 
 ## 全景概览
 
-| 情境 | 活跃度 | 核心关切 | 演化方向 |
-|------|--------|---------|---------|
+{{situation_count}} 个情境，{{intention_count}} 条意向（高优先 {{high_priority_count}}，高风险 {{high_risk_count}}）
+
+| 情境 | 意向数 | 高优先级 | 高风险 |
+|------|--------|---------|-------|
 {{#situations}}
-| {{label}} | {{activity}} | {{core_concern}} | {{direction}} |
+| {{label}} | {{intention_count}} | {{high_priority}} | {{high_risk}} |
 {{/situations}}
 
 ---
@@ -36,81 +38,60 @@
 
 ### {{label}}（{{name}}）
 
-**现象**：{{phenomenon}}
+**演化**：{{dynamics}}
 
-**原因**：{{reason}}
+**现象**：{{ecology}}
 
-**所以**：{{implication}}
+**判断**：{{frame}}
 
-| 关键意向 | 优先级 | 风险 | 来源 |
-|---------|--------|------|------|
-{{#key_intentions}}
-| {{title}} | {{priority}} | {{risk}} | {{evidence}} |
-{{/key_intentions}}
+| 关键意向 | 优先级 | 风险 | 层级 | 触发 |
+|---------|--------|------|------|------|
+{{#intentions}}
+| {{title}} | {{priority}} | {{risk}} | {{level}} | {{trigger}} |
+{{/intentions}}
 
 ---
+
 {{/situations}}
 
 ---
 
-## 关键关系
+## 关系分析
 
-{{#relations}}
+{{#situation_relations}}
 
-### {{source_label}} ↔ {{target_label}}
+- **{{source}}** ↔ **{{target}}**：{{type}}（{{strength}}）
+  {{logic}}
 
-**关系**：{{type}}（{{strength}}）
+{{/situation_relations}}
 
-**证据链**：{{evidence_chain}}
+{{#intention_relations}}
 
-{{/relations}}
+- **{{source_title}}** → **{{target_title}}**：{{type}} — {{logic}}
+
+{{/intention_relations}}
 
 ---
 
 ## 跨情境心智模型
 
-{{#mental_models}}
+{{#schemas}}
 
-### {{name}}
+### {{label}}
 
-**定义**：{{definition}}
+{{usage}}
 
-**适用情境**：{{situations}}
+{{#causals}}
+- IF {{condition}} THEN {{outcome}}
+{{/causals}}
+{{#biases}}
+- 信念：{{belief}}（事实：{{fact}}）
+{{/biases}}
+{{#boundaries}}
+- 边界：{{boundary}}
+{{/boundaries}}
 
-**表现模式**：
-
-```
-  ┌─────────────┐
-  │  情境触发   │
-  └──────┬──────┘
-         │
-  ┌──────▼──────┐
-  │ 心智模型激活 │
-  └──────┬──────┘
-         │
-  ┌──────┴──────┐
-  │  匹配判断   │
-  └──────┬──────┘
-         │
-    ┌────┴────┐
-    │         │
- ┌──▼──┐  ┌──▼──┐
- │ 匹配 │  │不匹配│
- └──┬──┘  └──┬──┘
-    │        │
- ┌──▼────┐ ┌─▼──────┐
- │{{correct_│ │{{error_  │
- │summary}}│ │summary}}│
- └────────┘ └────────┘
-```
-
-- **正确路径**：{{correct_pattern}}
-- **错误风险**：{{error_pattern}}
-
-**预测**：{{prediction}}
-
----
-{{/mental_models}}
+{{/schemas}}
 
 ---
 
