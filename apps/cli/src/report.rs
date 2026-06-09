@@ -1257,11 +1257,4 @@ impl ReportGenerator {
         Ok(out)
     }
 
-    /// Public display command for schema inference
-    /// Helper: get the previous week string
-    fn previous_week(&self, week: &str) -> Option<String> {
-        let weeks = self.engine.list_weeks().ok()?;
-        let pos = weeks.iter().position(|w| w == week)?;
-        if pos > 0 { Some(weeks[pos - 1].clone()) } else { None }
-    }
 }
