@@ -1114,21 +1114,34 @@ impl ReportGenerator {
         }
 
         let prompt = format!(
-            r#"分析以下一周的认知情境数据，提取跨情境的心智模型并形式化为 schema 格式。
+            r#"分析以下一周的认知情境数据，提取跨情境的心智模型并形式化为 schema 格式。必须严格按以下结构输出 JSON 数组，不要额外文字。
 
-每个 schema 包含：
-- label: 名称
-- entities: 实体及其属性
-- causals: IF-THEN 规则（因果信念）
-- boundaries: 适用边界
-- dynamics: 量化参数
-- mappings: 意图到操作的映射
-- biases: 常见误解（信念 vs 事实）
+每个 schema 格式：
+{{
+  "id": "uuid",
+  "label": "名称",
+  "entities": [{{"实体名": ["属性1", "属性2"]}}],
+  "causals": [{{"condition": "条件", "outcome": "结果"}}],
+  "boundaries": ["边界1", "边界2"],
+  "dynamics": {{"参数名": "值"}},
+  "mappings": [{{"intent": "意图描述", "action": "操作描述"}}],
+  "biases": [{{"id": "uuid", "belief": "误解信念", "fact": "事实"}}]
+}}
 
-请以 JSON 数组格式输出，不要额外文字。
+示例：
+{{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "label": "智能恒温器心智模型",
+  "entities": [{{"thermostat": ["current_temperature", "target_temperature", "mode: heat/cool/auto"]}}, {{"sensor": ["measures_indoor_temperature"]}}],
+  "causals": [{{"condition": "target_temperature > current_temperature", "outcome": "设备开始制热"}}, {{"condition": "target_temperature <= current_temperature", "outcome": "设备停止工作"}}],
+  "boundaries": ["仅适用于住宅单一房间", "忽略室外温度影响"],
+  "dynamics": {{"heating_rate": "0.5摄氏度/分钟", "natural_cooling_rate": "0.2摄氏度/分钟"}},
+  "mappings": [{{"intent": "变暖和", "action": "调高设定温度"}}, {{"intent": "省电", "action": "切换到节能模式"}}],
+  "biases": [{{"id": "b1c2d3e4-...", "belief": "认为设定温度越高制热越快", "fact": "实际功率恒定仅终点温度更高"}}]
+}}
 
+输入数据：
 {}
-
 "#, desc);
 
         let raw = client.chat(&prompt)?;
