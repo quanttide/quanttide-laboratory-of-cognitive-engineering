@@ -4,82 +4,100 @@
 
 ---
 
-## 全景速览
+## 核心洞察
 
-| 情境 | 意向数 | 高优先级 | 高风险 | 层级分布 |
-|------|--------|---------|--------|---------|
-{{#situations}}
-| {{label}} | {{intention_count}} | {{high_priority_count}} | {{high_risk_count}} | {{level_distribution}} |
-{{/situations}}
-
-**总计**：{{total_situations}} 个情境，{{total_intentions}} 条意向
+{{core_insight}}
 
 ---
 
-## 逐情境详情
+## 结论与建议
+
+### 本周结论
+
+{{conclusion}}
+
+### 行动建议
+
+| 优先级 | 行动项 | 预期效果 | 风险 |
+|--------|--------|---------|------|
+{{#actions}}
+| {{priority}} | {{action}} | {{expected_outcome}} | {{risk}} |
+{{/actions}}
+
+---
+
+## 全景概览
+
+| 情境 | 活跃度 | 核心关切 | 演化方向 |
+|------|--------|---------|---------|
+{{#situations}}
+| {{label}} | {{activity}} | {{core_concern}} | {{direction}} |
+{{/situations}}
+
+---
+
+## 逐情境分析
 
 {{#situations}}
 
 ### {{label}}（{{name}}）
 
-**演化**：{{dynamics}}
+**现象**：{{phenomenon}}
 
-**agenda**：{{agenda}}
+**原因**：{{reason}}
 
-**ecology**：{{ecology}}
+**判断**：{{frame}}
 
-**frame**：{{frame}}
-
-| 意向 | 优先级 | 风险 | 触发 |
-|------|--------|------|------|
-{{#intentions}}
-| {{title}} | {{priority_label}} | {{risk_label}} | {{trigger_label}} |
-{{/intentions}}
+| 关键意向 | 优先级 | 风险 |
+|---------|--------|------|
+{{#key_intentions}}
+| {{title}} | {{priority}} | {{risk}} |
+{{/key_intentions}}
 
 ---
 {{/situations}}
 
 ---
 
-## 情境关系
+## 关键关系
 
 {{#relations}}
 
-- **{{source_label}}** ↔ **{{target_label}}**：{{type}}（{{strength}}）
-  - 依据：{{logic}}
+### {{source_label}} ↔ {{target_label}}
 
-{{/relations}}
-{{^relations}}
-（暂无推理关系）
+**关系**：{{type}}（{{strength}}）
+
+**为什么**：{{logic}}
+
 {{/relations}}
 
 ---
 
-## 母题发现
+## 跨情境母题
 
 {{#motifs}}
 
 ### {{theme}}
 
-贯穿情境：{{situations}}
+**涉及**：{{situations}}
 
-描述：{{description}}
+**表现**：{{manifestation}}
+
+**启示**：{{implication}}
 
 ---
 {{/motifs}}
-{{^motifs}}
-（暂无跨情境母题）
-{{/motifs}}
 
 ---
 
-## 演化趋势（vs 前周）
+## 与前周对比
 
-{{#trends}}
+{{#comparisons}}
 
-- **{{label}}**：{{change_summary}}
+| 情境 | 变化 | 含义 |
+|------|------|------|
+{{#items}}
+| {{label}} | {{change}} | {{implication}} |
+{{/items}}
 
-{{/trends}}
-{{^trends}}
-（无跨周对比数据）
-{{/trends}}
+{{/comparisons}}
