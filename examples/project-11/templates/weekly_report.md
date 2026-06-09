@@ -4,24 +4,18 @@
 
 ---
 
-## 核心洞察
+## 核心判断
 
-{{core_insight}}
+{{core_judgment}}
 
 ---
 
-## 结论与建议
+## 行动建议
 
-### 本周结论
-
-{{conclusion}}
-
-### 行动建议
-
-| 优先级 | 行动项 | 预期效果 | 风险 |
-|--------|--------|---------|------|
+| 优先级 | 行动项 | 负责人 | 时限 | 预期效果 | 风险 |
+|--------|--------|-------|------|---------|------|
 {{#actions}}
-| {{priority}} | {{action}} | {{expected_outcome}} | {{risk}} |
+| {{priority}} | {{action}} | {{owner}} | {{deadline}} | {{expected_outcome}} | {{risk}} |
 {{/actions}}
 
 ---
@@ -46,12 +40,12 @@
 
 **原因**：{{reason}}
 
-**判断**：{{frame}}
+**所以**：{{implication}}
 
-| 关键意向 | 优先级 | 风险 |
-|---------|--------|------|
+| 关键意向 | 优先级 | 风险 | 来源 |
+|---------|--------|------|------|
 {{#key_intentions}}
-| {{title}} | {{priority}} | {{risk}} |
+| {{title}} | {{priority}} | {{risk}} | {{evidence}} |
 {{/key_intentions}}
 
 ---
@@ -67,7 +61,7 @@
 
 **关系**：{{type}}（{{strength}}）
 
-**为什么**：{{logic}}
+**证据链**：{{evidence_chain}}
 
 {{/relations}}
 
@@ -81,7 +75,7 @@
 
 **涉及**：{{situations}}
 
-**表现**：{{manifestation}}
+**证据链**：{{evidence_chain}}
 
 **启示**：{{implication}}
 
