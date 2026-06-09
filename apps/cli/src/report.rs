@@ -275,7 +275,7 @@ impl ReportGenerator {
         );
 
         let raw = client.complete(&[Message::new("user", &prompt)], Default::default()).map_err(|e| format!("LLM: {}", e.0))?.content;
-        let json = crate::llm::parse_structured_output(&raw)?;
+        let json = quanttide_agent::llm::parse_structured_output(&raw)?;
 
         if let Ok(content) = serde_json::to_string_pretty(&json) {
             fs::write(&cache_path, &content).ok();
@@ -622,7 +622,7 @@ impl ReportGenerator {
         );
 
         let raw = client.complete(&[Message::new("user", &prompt)], Default::default()).map_err(|e| format!("LLM: {}", e.0))?.content;
-        let json = crate::llm::parse_structured_output(&raw)?;
+        let json = quanttide_agent::llm::parse_structured_output(&raw)?;
 
         // Save cache
         if let Ok(content) = serde_json::to_string_pretty(&json) {
@@ -970,7 +970,7 @@ impl ReportGenerator {
         );
 
         let raw = client.complete(&[Message::new("user", &prompt)], Default::default()).map_err(|e| format!("LLM: {}", e.0))?.content;
-        let json = crate::llm::parse_structured_output(&raw)?;
+        let json = quanttide_agent::llm::parse_structured_output(&raw)?;
         if let Ok(content) = serde_json::to_string_pretty(&json) {
             fs::write(&cache_path, &content).ok();
         }
