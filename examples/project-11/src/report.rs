@@ -136,6 +136,21 @@ impl ReportGenerator {
             .into_iter()
             .map(|e| (e.name, e.label))
             .collect();
+        let category = self.engine.loader.load_category().ok();
+        let category_order: std::collections::HashMap<String, usize> = category
+            .unwrap_or_default()
+            .into_iter()
+            .enumerate()
+            .map(|(i, e)| (e.name, i))
+            .collect();
+
+        // Sort situations by category order
+        let mut sorted_sits = data.situations.clone();
+        sorted_sits.sort_by(|a, b| {
+            let ai = category_order.get(&a.name).copied().unwrap_or(usize::MAX);
+            let bi = category_order.get(&b.name).copied().unwrap_or(usize::MAX);
+            ai.cmp(&bi)
+        });
 
         let mut out = String::new();
         out.push_str(&format!("# 情境周报：{}\n\n", week));
@@ -159,12 +174,12 @@ impl ReportGenerator {
         let bottom = data.intentions.iter().filter(|i| i.level.name == "bottom").count();
         out.push_str(&format!(
             "{} 个情境，{} 条意向（高优先 {}，高风 {}，顶层 {}，底层 {}）\n\n",
-            data.situations.len(), total, high_p, high_r, top, bottom
+            sorted_sits.len(), total, high_p, high_r, top, bottom
         ));
 
         out.push_str("| 情境 | 意向数 | 高优先级 | 高风险 | 顶层 | 底层 |\n");
         out.push_str("|------|--------|---------|-------|------|------|\n");
-        for sit in &data.situations {
+        for sit in &sorted_sits {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
             let intents = data.intention_map.get(&sit.name);
             let c = intents.map(|v| v.len()).unwrap_or(0);
@@ -178,7 +193,7 @@ impl ReportGenerator {
 
         // — Per-situation analysis —
         out.push_str("## 逐情境分析\n\n");
-        for sit in &data.situations {
+        for sit in &sorted_sits {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
             out.push_str(&format!("### {}（{}）\n\n", label, sit.name));
             out.push_str(&format!("**演化**：{}\n\n", sit.content.dynamics));
@@ -267,7 +282,7 @@ impl ReportGenerator {
         if let Some(ref pw) = prev_week {
             out.push_str("## 与前周对比\n\n");
             if let Ok(prev_data) = self.engine.week(pw) {
-                for sit in &data.situations {
+                for sit in &sorted_sits {
                     let prev = prev_data.intention_map.get(&sit.name).cloned().unwrap_or_default();
                     let curr = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
                     if prev.is_empty() && curr.is_empty() { continue; }
