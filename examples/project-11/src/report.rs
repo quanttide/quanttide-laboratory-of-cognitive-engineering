@@ -152,15 +152,27 @@ impl ReportGenerator {
 
         // — Panorama —
         out.push_str("## 全景概览\n\n");
-        out.push_str("| 情境 | 意向数 | 高优先级 | 高风险 |\n");
-        out.push_str("|------|--------|---------|-------|\n");
+        let total = data.intentions.len();
+        let high_p = data.intentions.iter().filter(|i| i.priority.name == "high").count();
+        let high_r = data.intentions.iter().filter(|i| i.risk.name == "high").count();
+        let top = data.intentions.iter().filter(|i| i.level.name == "top").count();
+        let bottom = data.intentions.iter().filter(|i| i.level.name == "bottom").count();
+        out.push_str(&format!(
+            "{} 个情境，{} 条意向（高优先 {}，高风 {}，顶层 {}，底层 {}）\n\n",
+            data.situations.len(), total, high_p, high_r, top, bottom
+        ));
+
+        out.push_str("| 情境 | 意向数 | 高优先级 | 高风险 | 顶层 | 底层 |\n");
+        out.push_str("|------|--------|---------|-------|------|------|\n");
         for sit in &data.situations {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
             let intents = data.intention_map.get(&sit.name);
-            let count = intents.map(|v| v.len()).unwrap_or(0);
-            let high_p = intents.map(|v| v.iter().filter(|i| i.priority.name == "high").count()).unwrap_or(0);
-            let high_r = intents.map(|v| v.iter().filter(|i| i.risk.name == "high").count()).unwrap_or(0);
-            out.push_str(&format!("| {} | {} | {} | {} |\n", label, count, high_p, high_r));
+            let c = intents.map(|v| v.len()).unwrap_or(0);
+            let hp = intents.map(|v| v.iter().filter(|i| i.priority.name == "high").count()).unwrap_or(0);
+            let hr = intents.map(|v| v.iter().filter(|i| i.risk.name == "high").count()).unwrap_or(0);
+            let t = intents.map(|v| v.iter().filter(|i| i.level.name == "top").count()).unwrap_or(0);
+            let b = intents.map(|v| v.iter().filter(|i| i.level.name == "bottom").count()).unwrap_or(0);
+            out.push_str(&format!("| {} | {} | {} | {} | {} | {} |\n", label, c, hp, hr, t, b));
         }
         out.push('\n');
 
@@ -174,20 +186,23 @@ impl ReportGenerator {
             out.push_str(&format!("**判断**：{}\n\n", sit.content.frame));
 
             if let Some(intents) = data.intention_map.get(&sit.name) {
-                out.push_str("| 关键意向 | 优先级 | 风险 |\n");
-                out.push_str("|---------|--------|------|\n");
+                out.push_str("| 关键意向 | 优先级 | 风险 | 层级 | 触发 |\n");
+                out.push_str("|---------|--------|------|------|------|\n");
                 for i in intents {
-                    out.push_str(&format!("| {} | {} | {} |\n", i.title, i.priority.label, i.risk.label));
+                    out.push_str(&format!(
+                        "| {} | {} | {} | {} | {} |\n",
+                        i.title, i.priority.label, i.risk.label, i.level.label, i.trigger.label
+                    ));
                 }
             }
             out.push_str("\n---\n\n");
         }
 
-        // — Try loading cached relations —
+        // — Try loading cached situation relations —
         let rel_path = self.reports_dir(week).join("relations.json");
         if let Ok(content) = fs::read_to_string(&rel_path) {
-            out.push_str("## 关键关系\n\n");
             if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                out.push_str("## 情境关系\n\n");
                 for rel in &arr {
                     let s = rel["source"].as_str().unwrap_or("?");
                     let t = rel["target"].as_str().unwrap_or("?");
@@ -196,22 +211,59 @@ impl ReportGenerator {
                     let l = rel["logic"].as_str().unwrap_or("");
                     out.push_str(&format!("- **{}** ↔ **{}**：{}（{}）\n  {}\n", s, t, r, st, l));
                 }
+                out.push('\n');
             }
-            out.push('\n');
-        } else {
-            out.push_str("## 关键关系\n\n");
-            out.push_str("（运行 `relate` 生成）\n\n");
         }
 
-        // — Mental Models placeholder —
-        out.push_str("## 跨情境心智模型\n\n");
-        out.push_str("（待推理）\n\n");
+        // — Try loading cached intention relations —
+        let irel_path = self.reports_dir(week).join("intention-relations.json");
+        if let Ok(content) = fs::read_to_string(&irel_path) {
+            if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                out.push_str("## 意图关系\n\n");
+                for rel in &arr {
+                    let s = rel["source"].as_u64().unwrap_or(999);
+                    let t = rel["target"].as_u64().unwrap_or(999);
+                    let rtype = rel["type"].as_str().unwrap_or("?");
+                    let logic = rel["logic"].as_str().unwrap_or("");
+                    out.push_str(&format!("- [{}] → [{}]：{} — {}\n", s, t, rtype, logic));
+                }
+                out.push('\n');
+            }
+        }
 
-        // — Comparison —
-        out.push_str("## 与前周对比\n\n");
-        out.push_str("（待实现跨周差异分析）\n");
+        // — Drift from previous week —
+        let prev_week = self.previous_week(week);
+        if let Some(ref pw) = prev_week {
+            out.push_str("## 与前周对比\n\n");
+            if let Ok(prev_data) = self.engine.week(pw) {
+                for sit in &data.situations {
+                    let prev = prev_data.intention_map.get(&sit.name).cloned().unwrap_or_default();
+                    let curr = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
+                    if prev.is_empty() && curr.is_empty() { continue; }
+                    let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
+                    let pc = prev.len();
+                    let cc = curr.len();
+                    if pc != cc {
+                        let diff = if cc > pc { format!("+{}", cc - pc) } else { format!("-{}", pc - cc) };
+                        out.push_str(&format!("- **{}**：{} → {}（{}）\n", label, pc, cc, diff));
+                    }
+                    // Check priority drift for matched titles
+                    for a in &prev {
+                        for b in &curr {
+                            if a.title == b.title && a.priority.name != b.priority.name {
+                                out.push_str(&format!("  - 「{}」优先级：{} → {}\n", a.title, a.priority.label, b.priority.label));
+                            }
+                        }
+                    }
+                }
+                out.push('\n');
+            }
+        } else {
+            out.push_str("## 与前周对比\n\n");
+            out.push_str("（无前周数据）\n\n");
+        }
 
-        // Save report
+        // Save
         let report_path = self.reports_dir(week).join("report.md");
         fs::write(&report_path, &out).ok();
         println!("Report saved to: {:?}", report_path);
@@ -851,112 +903,6 @@ impl ReportGenerator {
     }
 
     /// Generate an intention-focused structured report for a week
-    pub fn intention_report(&self, week: &str) -> Result<String, String> {
-        let data = self.engine.week(week)?;
-        let reg = self.engine.registry().ok();
-        let label_map: std::collections::HashMap<String, String> = reg
-            .unwrap_or_default()
-            .into_iter()
-            .map(|e| (e.name, e.label))
-            .collect();
-        let prev_week = self.previous_week(week);
-
-        let mut out = String::new();
-        out.push_str(&format!("# 意图周报：{}\n\n", week));
-
-        // Overview
-        let total = data.intentions.len();
-        let high_p = data.intentions.iter().filter(|i| i.priority.name == "high").count();
-        let high_r = data.intentions.iter().filter(|i| i.risk.name == "high").count();
-        let top = data.intentions.iter().filter(|i| i.level.name == "top").count();
-        let bottom = data.intentions.iter().filter(|i| i.level.name == "bottom").count();
-
-        out.push_str("## 概览\n\n");
-        out.push_str(&format!(
-            "总意向：{} | 高优先级：{} | 高风险：{} | 顶层：{} | 底层：{}\n\n",
-            total, high_p, high_r, top, bottom
-        ));
-
-        // Priority/risk distribution
-        out.push_str("## 分布\n\n");
-        out.push_str("| 情境 | 意向数 | 高优先级 | 高风险 | 顶层 | 底层 |\n");
-        out.push_str("|------|--------|---------|-------|------|------|\n");
-        for sit in &data.situations {
-            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            let intents = data.intention_map.get(&sit.name);
-            let count = intents.map(|v| v.len()).unwrap_or(0);
-            let hp = intents.map(|v| v.iter().filter(|i| i.priority.name == "high").count()).unwrap_or(0);
-            let hr = intents.map(|v| v.iter().filter(|i| i.risk.name == "high").count()).unwrap_or(0);
-            let t = intents.map(|v| v.iter().filter(|i| i.level.name == "top").count()).unwrap_or(0);
-            let b = intents.map(|v| v.iter().filter(|i| i.level.name == "bottom").count()).unwrap_or(0);
-            out.push_str(&format!("| {} | {} | {} | {} | {} | {} |\n", label, count, hp, hr, t, b));
-        }
-        out.push('\n');
-
-        // Detailed list
-        out.push_str("## 意向清单\n\n");
-        for sit in &data.situations {
-            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            if let Some(intents) = data.intention_map.get(&sit.name) {
-                out.push_str(&format!("### {}（{}）\n\n", label, sit.name));
-                for i in intents {
-                    out.push_str(&format!(
-                        "- **{}** | priority={} | risk={} | level={} | trigger={}\n",
-                        i.title, i.priority.label, i.risk.label, i.level.label, i.trigger.label
-                    ));
-                    out.push_str(&format!("  {}\n", i.description));
-                }
-                out.push('\n');
-            }
-        }
-
-        // Cached intention relations
-        let rel_path = self.reports_dir(week).join("intention-relations.json");
-        if let Ok(content) = fs::read_to_string(&rel_path) {
-            if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
-                out.push_str("## 意图关系\n\n");
-                for rel in &arr {
-                    let s = rel["source"].as_u64().unwrap_or(999);
-                    let t = rel["target"].as_u64().unwrap_or(999);
-                    let rtype = rel["type"].as_str().unwrap_or("?");
-                    let logic = rel["logic"].as_str().unwrap_or("");
-                    out.push_str(&format!("- [{}] → [{}]：{} — {}\n", s, t, rtype, logic));
-                }
-                out.push('\n');
-            }
-        }
-
-        // Drift from previous week (same situation intentions)
-        if let Some(ref pw) = prev_week {
-            out.push_str("## 与前周对比\n\n");
-            for sit in &data.situations {
-                if let Ok(prev_data) = self.engine.week(pw) {
-                    let prev = prev_data.intention_map.get(&sit.name).cloned().unwrap_or_default();
-                    let curr = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
-                    if prev.is_empty() && curr.is_empty() { continue; }
-                    let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-                    // count changes
-                    let prev_count = prev.len();
-                    let curr_count = curr.len();
-                    if prev_count != curr_count {
-                        out.push_str(&format!("- **{}**：意向数 {} → {}（{}）\n",
-                            label, prev_count, curr_count,
-                            if curr_count > prev_count { format!("+{}", curr_count - prev_count) } else { format!("-{}", prev_count - curr_count) }
-                        ));
-                    }
-                }
-            }
-            out.push('\n');
-        }
-
-        // Save
-        let report_path = self.reports_dir(week).join("intention-report.md");
-        fs::write(&report_path, &out).ok();
-        println!("Intention report saved to: {:?}", report_path);
-
-        Ok(out)
-    }
-
     /// Helper: get the previous week string
     fn previous_week(&self, week: &str) -> Option<String> {
         let weeks = self.engine.list_weeks().ok()?;
