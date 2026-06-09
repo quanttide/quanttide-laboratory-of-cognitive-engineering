@@ -235,16 +235,6 @@ impl Repl {
                         Err(e) => println!("Error: {}", e),
                     }
                 }
-                "infer-schemas" | "is" => {
-                    if parts.len() < 2 {
-                        println!("Usage: infer-schemas <week>");
-                        continue;
-                    }
-                    match reporter.infer_schemas(parts[1]) {
-                        Ok(s) => println!("{}", s),
-                        Err(e) => println!("Error: {}", e),
-                    }
-                }
                 "tension" => {
                     if parts.len() < 2 {
                         println!("Usage: tension <week>");

@@ -83,11 +83,19 @@ pub struct Schema {
     #[serde(default)]
     pub boundaries: Vec<String>,
     #[serde(default)]
-    pub dynamics: std::collections::HashMap<String, String>,
+    pub properties: Vec<KeyValue>,
+    #[serde(default)]
+    pub dynamics: Vec<KeyValue>,
     #[serde(default)]
     pub mappings: Vec<IntentMapping>,
     #[serde(default)]
     pub biases: Vec<Bias>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyValue {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,8 +107,7 @@ pub struct Causal {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntentMapping {
     pub intent: String,
-    #[serde(default)]
-    pub action: Vec<String>,
+    pub action: serde_yaml::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

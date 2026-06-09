@@ -294,68 +294,29 @@ impl ReportGenerator {
             out.push_str("（无前周数据）\n\n");
         }
 
-        // — Mental Models (schemas) —
+        // — Mental Models (schemas from gallery) —
         out.push_str("## 跨情境心智模型\n\n");
-        match self.infer_schemas_json(week) {
-            Ok(json_val) => {
-                if let Some(arr) = json_val.as_array() {
-                    for s in arr {
-                        let label = s["label"].as_str().unwrap_or("?");
-                        out.push_str(&format!("### {}\n\n", label));
-                        // causals: support array and object format
-                        if let Some(causals) = s["causals"].as_array() {
-                            for c in causals {
-                                let cond = c["condition"].as_str().or_else(|| c.as_str()).unwrap_or("");
-                                let outcm = c["outcome"].as_str().unwrap_or("");
-                                if !cond.is_empty() && !outcm.is_empty() {
-                                    out.push_str(&format!("- IF {} THEN {}\n", cond, outcm));
-                                }
-                            }
-                        } else if let Some(map) = s["causals"].as_object() {
-                            for (k, v) in map {
-                                let key = k.trim_start_matches("IF ").trim_end_matches(" THEN");
-                                let val = v.as_str().unwrap_or("").trim_start_matches("THEN ").trim_start_matches("then ");
-                                out.push_str(&format!("- IF {} THEN {}\n", key, val));
-                            }
-                        }
-                        // biases: support array and object format
-                        if let Some(biases) = s["biases"].as_array() {
-                            for b in biases {
-                                let belief = b["belief"].as_str().unwrap_or("");
-                                let fact = b["fact"].as_str().unwrap_or("");
-                                if !belief.is_empty() {
-                                    out.push_str(&format!("- 信念：{}（事实：{}）\n", belief, fact));
-                                }
-                            }
-                        } else if let Some(map) = s["biases"].as_object() {
-                            let bf = map.get("信念").or_else(|| map.get("belief"));
-                            let ft = map.get("事实").or_else(|| map.get("fact"));
-                            if let (Some(belief), Some(fact)) = (bf, ft) {
-                                out.push_str(&format!("- 信念：{}（事实：{}）\n", belief.as_str().unwrap_or("?"), fact.as_str().unwrap_or("?")));
-                            }
-                        }
-                        // boundaries: support array and string
-                        if let Some(bs) = s["boundaries"].as_array() {
-                            for b in bs {
-                                let bstr = b.as_str().unwrap_or("");
-                                if !bstr.is_empty() {
-                                    out.push_str(&format!("- 边界：{}\n", bstr));
-                                }
-                            }
-                        } else if let Some(bstr) = s["boundaries"].as_str() {
-                            out.push_str(&format!("- 边界：{}\n", bstr));
-                        }
-                        out.push('\n');
+        match self.engine.loader.load_schemas(week) {
+            Ok(schemas) => {
+                for s in &schemas {
+                    out.push_str(&format!("### {}\n\n", s.label));
+                    for c in &s.causals {
+                        out.push_str(&format!("- IF {} THEN {}\n", c.condition, c.outcome));
                     }
-                    if arr.is_empty() {
-                        out.push_str("（未推理出心智模型）\n\n");
+                    for b in &s.biases {
+                        out.push_str(&format!("- 信念：{}（事实：{}）\n", b.belief, b.fact));
                     }
-                } else {
-                    out.push_str("（未推理出心智模型）\n\n");
+                    for b in &s.boundaries {
+                        out.push_str(&format!("- 边界：{}\n", b));
+                    }
+                    out.push('\n');
+                }
+                if schemas.is_empty() {
+                    out.push_str("（暂无心智模型数据）\n\n");
                 }
             }
             Err(e) => {
-                out.push_str(&format!("（推理失败：{}）\n\n", e));
+                out.push_str(&format!("（加载失败：{}）\n\n", e));
             }
         }
 
@@ -1040,110 +1001,6 @@ impl ReportGenerator {
     }
 
     /// Public display command for schema inference
-    pub fn infer_schemas(&self, week: &str) -> Result<String, String> {
-        let json = self.infer_schemas_json(week)?;
-        let mut out = String::new();
-        out.push_str(&format!("# Inferred Schemas: {}\n\n", week));
-        if let Some(arr) = json.as_array() {
-            for s in arr {
-                let label = s["label"].as_str().unwrap_or("?");
-                out.push_str(&format!("## {}\n\n", label));
-                if let Some(cs) = s["causals"].as_array() {
-                    for c in cs {
-                        let cond = c["condition"].as_str().unwrap_or("?");
-                        let outcm = c["outcome"].as_str().unwrap_or("?");
-                        out.push_str(&format!("- IF {} THEN {}\n", cond, outcm));
-                    }
-                }
-                if let Some(biases) = s["biases"].as_array() {
-                    for b in biases {
-                        let belief = b["belief"].as_str().unwrap_or("?");
-                        let fact = b["fact"].as_str().unwrap_or("?");
-                        out.push_str(&format!("- 信念：{}（事实：{}）\n", belief, fact));
-                    }
-                }
-                if let Some(bs) = s["boundaries"].as_array() {
-                    for b in bs {
-                        out.push_str(&format!("- 边界：{}\n", b.as_str().unwrap_or("?")));
-                    }
-                }
-                out.push('\n');
-            }
-        }
-        if json.as_array().map_or(true, |a| a.is_empty()) {
-            out.push_str("（未推理出 schema）\n");
-        }
-        Ok(out)
-    }
-
-    /// Private: infer schemas and return JSON value (cached)
-    fn infer_schemas_json(&self, week: &str) -> Result<serde_json::Value, String> {
-        let cache_path = self.reports_dir(week).join("schemas.yaml");
-        // Try read cache
-        if let Ok(content) = fs::read_to_string(&cache_path) {
-            if !content.trim().is_empty() {
-                if let Ok(v) = serde_yaml::from_str::<serde_json::Value>(&content) {
-                    eprintln!("(loaded cached schemas)");
-                    return Ok(v);
-                }
-            }
-        }
-
-        let client = crate::llm::DeepSeekClient::from_env()?;
-        let data = self.engine.week(week)?;
-        let reg = self.engine.registry().ok();
-        let label_map: std::collections::HashMap<String, String> = reg
-            .unwrap_or_default()
-            .into_iter()
-            .map(|e| (e.name, e.label))
-            .collect();
-
-        let mut desc = String::new();
-        for sit in &data.situations {
-            let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
-            desc.push_str(&format!("情境「{}」:\n", label));
-            desc.push_str(&format!("  现象: {}\n", sit.content.ecology));
-            desc.push_str(&format!("  判断: {}\n", sit.content.frame));
-            if let Some(intents) = data.intention_map.get(&sit.name) {
-                for i in intents {
-                    desc.push_str(&format!("  意向「{}」(priority={}, risk={})\n",
-                        i.title, i.priority.name, i.risk.name));
-                }
-            }
-            desc.push('\n');
-        }
-
-        let prompt = format!(
-            r#"分析以下一周的认知情境数据，提取跨情境的心智模型并形式化为 schema 格式。必须严格按以下结构输出 JSON 数组，不要额外文字。
-
-每个 schema 格式：
-{{
-  "id": "uuid",
-  "label": "名称（≤8字，不加'心智模型'后缀）",
-  "entities": [{{"name": "实体名", "attributes": ["属性1", "属性2"]}}],
-  "causals": [{{"condition": "条件", "outcome": "结果"}}],
-  "boundaries": ["边界1", "边界2"],
-  "properties": [{{"key": "参数名", "value": "值"}}],
-  "dynamics": [{{"key": "参数名", "value": "值"}}],
-  "mappings": [{{"intent": "意图描述", "action": "操作描述"}}],
-  "biases": [{{"id": "uuid", "belief": "误解信念", "fact": "事实"}}]
-}}
-
-输入数据：
-{}
-"#, desc);
-
-        let raw = client.chat(&prompt)?;
-        let json = crate::llm::extract_json(&raw)?;
-
-        // Cache as YAML
-        if let Ok(yaml_str) = serde_yaml::to_string(&json) {
-            fs::write(&cache_path, &yaml_str).ok();
-        }
-
-        Ok(json)
-    }
-
     /// Helper: get the previous week string
     fn previous_week(&self, week: &str) -> Option<String> {
         let weeks = self.engine.list_weeks().ok()?;
