@@ -2,7 +2,13 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::models::*;
+use quanttide_think::{
+    intention::Intention,
+    situation::Situation,
+    schema::Schema,
+    domain::Domain,
+};
+use crate::query::WeekData;
 
 pub struct GalleryLoader {
     gallery_base: PathBuf,

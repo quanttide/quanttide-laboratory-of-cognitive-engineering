@@ -3,7 +3,12 @@ use std::path::PathBuf;
 
 use quanttide_agent::message::Message;
 
-use crate::models::{Intention, Schema, Situation, WeekData};
+use quanttide_think::{
+    intention::Intention,
+    situation::Situation,
+    schema::Schema,
+};
+use crate::query::WeekData;
 use crate::query::QueryEngine;
 
 pub struct ReportGenerator {

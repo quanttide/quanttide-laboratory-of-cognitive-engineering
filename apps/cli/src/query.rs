@@ -1,5 +1,13 @@
-use crate::models::*;
+use std::collections::HashMap;
+
+use quanttide_think::{
+    intention::Intention,
+    situation::Situation,
+    domain::Domain,
+};
 use crate::loader::GalleryLoader;
+
+pub type WeekData = (Vec<Situation>, Vec<Intention>, HashMap<String, Vec<Intention>>);
 
 pub struct QueryEngine {
     pub loader: GalleryLoader,
