@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::models::{Schema, Situation, WeekData};
+use crate::models::{Intention, Schema, Situation, WeekData};
 use crate::query::QueryEngine;
 
 pub struct ReportGenerator {
@@ -364,7 +364,7 @@ impl ReportGenerator {
         Ok(out)
     }
 
-    /// Data-only fallback for gallery format (no LLM)
+    /// Data-only gallery report with synthesized content (no LLM)
     fn data_gallery_report(
         &self,
         week: &str,
@@ -376,39 +376,70 @@ impl ReportGenerator {
         let mut out = String::new();
         out.push_str(&format!("# {} 认知工程报告\n\n", week));
 
-        // Summary (computed)
-        let total_intents = data.intentions.len();
+        // — Summary —
+        let total = data.intentions.len();
         let high_p = data.intentions.iter().filter(|i| i.priority.name == "high").count();
         let high_r = data.intentions.iter().filter(|i| i.risk.name == "high").count();
+        let top = data.intentions.iter().filter(|i| i.level.name == "top").count();
+        let bottom = data.intentions.iter().filter(|i| i.level.name == "bottom").count();
+        let top_intents: Vec<&str> = data.intentions.iter().filter(|i| i.level.name == "top").map(|i| i.title.as_str()).collect();
+
         out.push_str("## 摘要\n\n");
         out.push_str(&format!(
-            "本周共 {} 个领域，{} 条意图（高优先级 {}，高风险 {}）。\n\n",
-            sorted_sits.len(), total_intents, high_p, high_r,
+            "本周 {} 个领域，{} 条意图（高优先级 {}，高风险 {}，顶层 {}，底层 {}）。",
+            sorted_sits.len(), total, high_p, high_r, top, bottom,
         ));
+        if !top_intents.is_empty() {
+            out.push_str(&format!(" 顶层意图：{}。", top_intents.join("、")));
+        }
+        out.push_str(&format!(
+            " 领域排序：{}。",
+            sorted_sits.iter()
+                .map(|s| label_map.get(&s.name).cloned().unwrap_or_else(|| s.name.clone()))
+                .collect::<Vec<_>>().join("、")
+        ));
+        out.push_str("\n\n");
 
-        // Domains
+        // — Domains —
         out.push_str("## 领域描述\n\n");
         for sit in sorted_sits {
             let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
             let intents = data.intention_map.get(&sit.name).cloned().unwrap_or_default();
             let schema = schemas.iter().find(|s| s.name == sit.name);
 
-            // Schema mining: use schema usage or frame
-            let schema_text = schema
-                .and_then(|s| if s.content.usage.is_empty() { None } else { Some(s.content.usage.as_str()) })
-                .unwrap_or(&sit.content.frame);
+            // 图式挖掘: synthesize from frame + schema
+            let mut schema_parts: Vec<String> = Vec::new();
+            if let Some(s) = schema {
+                if !s.content.usage.is_empty() {
+                    schema_parts.push(s.content.usage.clone());
+                }
+                for c in &s.content.causals {
+                    schema_parts.push(format!("若{}则{}", c.condition, c.outcome));
+                }
+                for b in &s.content.boundaries {
+                    schema_parts.push(format!("边界：{}", b));
+                }
+                for b in &s.content.biases {
+                    schema_parts.push(format!("常见误区：{}（事实：{}）", b.belief, b.fact));
+                }
+            }
+            let schema_text = if schema_parts.is_empty() {
+                sit.content.frame.clone()
+            } else {
+                schema_parts.join("；")
+            };
 
-            // Situation awareness: agenda + ecology
-            let awareness_text = format!("议程：{}。现状：{}", sit.content.agenda, sit.content.ecology);
+            // 情境意识: clean agenda + ecology
+            let awareness_text = format!("议程：{} 现状：{}", sit.content.agenda, sit.content.ecology);
 
-            // Intention recognition
+            // 意图识别: group by level with details
             let intention_text = if intents.is_empty() {
                 "（无明确意图数据）".to_string()
             } else {
-                intents.iter()
-                    .map(|i| format!("{}（{}优先级，{}风险）", i.title, i.priority.label, i.risk.label))
-                    .collect::<Vec<_>>()
-                    .join("；")
+                let detail: Vec<String> = intents.iter().map(|i| {
+                    format!("{}（{}优先级，{}风险，{}）", i.title, i.priority.label, i.risk.label, i.trigger.label)
+                }).collect();
+                detail.join("；")
             };
 
             out.push_str(&format!("### {}\n\n", label));
@@ -417,14 +448,141 @@ impl ReportGenerator {
             out.push_str(&format!("- 意图识别：{}\n\n", intention_text));
         }
 
-        // Relations (placeholder without LLM)
+        // — Relations: compute from shared frame + schema patterns —
         out.push_str("## 领域关系\n\n");
-        out.push_str("（运行 LLM 报告生成以获取关系分析）\n\n");
+        let mut rel_count = 0usize;
+        for i in 0..sorted_sits.len() {
+            for j in (i+1)..sorted_sits.len() {
+                let a = &sorted_sits[i];
+                let b = &sorted_sits[j];
+                let alabel = label_map.get(&a.name).cloned().unwrap_or_else(|| a.name.clone());
+                let blabel = label_map.get(&b.name).cloned().unwrap_or_else(|| b.name.clone());
+                let sa = schemas.iter().find(|s| s.name == a.name);
+                let sb = schemas.iter().find(|s| s.name == b.name);
 
-        // Appendix
+                // Score how connected these two domains are
+                let a_entities: Vec<String> = sa.map(|s| s.content.entities.iter()
+                    .filter_map(|e| e.get("name").and_then(|v| v.as_str()).map(String::from))
+                    .collect()).unwrap_or_default();
+                let b_entities: Vec<String> = sb.map(|s| s.content.entities.iter()
+                    .filter_map(|e| e.get("name").and_then(|v| v.as_str()).map(String::from))
+                    .collect()).unwrap_or_default();
+                let shared_entities: Vec<&str> = a_entities.iter().filter_map(|e|
+                    if b_entities.contains(e) { Some(e.as_str()) } else { None }
+                ).collect();
+
+                let a_frame = a.content.frame.to_lowercase();
+                let b_frame = b.content.frame.to_lowercase();
+                let keywords = ["设计", "体系", "范式", "平衡", "转型", "迭代", "风险", "演化", "框架", "边界", "可持续", "探索", "整合", "人机", "协作"];
+                let shared_kw: Vec<&str> = keywords.iter().filter(|kw|
+                    a_frame.contains(*kw) && b_frame.contains(*kw)
+                ).copied().collect();
+
+                let a_has_top = data.intention_map.get(&a.name).map(|v| v.iter().any(|i| i.level.name == "top")).unwrap_or(false);
+                let b_has_bottom = data.intention_map.get(&b.name).map(|v| v.iter().any(|i| i.level.name == "bottom")).unwrap_or(false);
+                let a_has_bottom = data.intention_map.get(&a.name).map(|v| v.iter().any(|i| i.level.name == "bottom")).unwrap_or(false);
+                let b_has_top = data.intention_map.get(&b.name).map(|v| v.iter().any(|i| i.level.name == "top")).unwrap_or(false);
+                let has_top_bottom = (a_has_top && b_has_bottom) || (b_has_top && a_has_bottom);
+
+                // Skip if no meaningful connection
+                let meaningful = shared_entities.len() >= 1 || shared_kw.len() >= 2 || has_top_bottom;
+                if !meaningful {
+                    continue;
+                }
+
+                let mut schema_assoc = String::new();
+                let mut situation_assoc = String::new();
+                let mut intention_assoc = String::new();
+
+                if !shared_entities.is_empty() {
+                    schema_assoc.push_str(&format!("共享概念：{}。", shared_entities.join("、")));
+                }
+                if !shared_kw.is_empty() {
+                    schema_assoc.push_str(&format!("共同认知框架：{}。", shared_kw.join("、")));
+                }
+
+                let a_dyn = &a.content.dynamics;
+                let b_dyn = &b.content.dynamics;
+                let a_has_evolve = a_dyn.contains("演化") || a_dyn.contains("迭代") || a_dyn.contains("转型");
+                let b_has_evolve = b_dyn.contains("演化") || b_dyn.contains("迭代") || b_dyn.contains("转型");
+                if a_has_evolve && b_has_evolve {
+                    situation_assoc.push_str(&format!("{}和{}都处于演化阶段。", alabel, blabel));
+                }
+
+                if has_top_bottom {
+                    let (top_label, bottom_label) = if a_has_top && b_has_bottom {
+                        (alabel.as_str(), blabel.as_str())
+                    } else {
+                        (blabel.as_str(), alabel.as_str())
+                    };
+                    intention_assoc.push_str(&format!("{}的顶层意图与{}的底层意图形成张力——前者提供方向，后者提供基础条件。", top_label, bottom_label));
+                }
+
+                if schema_assoc.is_empty() {
+                    schema_assoc = "暂无直接共享图式，由意图层级互补关系发现。".to_string();
+                }
+                if situation_assoc.is_empty() {
+                    situation_assoc = "（无显著情境关联）".to_string();
+                }
+                out.push_str(&format!("### {} vs {}\n\n", alabel, blabel));
+                out.push_str(&format!("- 图式关联：{}\n", schema_assoc));
+                out.push_str(&format!("- 情境关联：{}\n", situation_assoc));
+                out.push_str(&format!("- 意图关联：{}\n\n", intention_assoc));
+                rel_count += 1;
+            }
+        }
+        if rel_count == 0 {
+            out.push_str("（未发现显著关系）\n\n");
+        }
+
+        // — Appendix: decision items from tensions, cross-domain risks —
         out.push_str("## 附录\n\n");
-        out.push_str("（运行 LLM 报告生成以获取待决策项和跨领域风险）\n\n");
 
+        // Decision items from high-risk top intentions
+        let tension_items: Vec<&Intention> = data.intentions.iter()
+            .filter(|i| i.risk.name == "high" && i.level.name == "top").collect();
+        for i in &tension_items {
+            let sit_label = sorted_sits.iter()
+                .find(|s| data.intention_map.get(&s.name).map_or(false, |v| v.iter().any(|x| x.id == i.id)))
+                .and_then(|s| label_map.get(&s.name))
+                .cloned().unwrap_or_default();
+            out.push_str(&format!("- 待决策（{}，{}）：{}——{}\n", sit_label, i.title, i.description, i.motivation));
+        }
+
+        // Cross-domain: same entity appearing in multiple domains
+        let entity_domains: std::collections::HashMap<String, Vec<String>> = {
+            let mut map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+            for sit in sorted_sits {
+                let label = label_map.get(&sit.name).cloned().unwrap_or_else(|| sit.name.clone());
+                let schema = schemas.iter().find(|s| s.name == sit.name);
+                if let Some(s) = schema {
+                    for e in &s.content.entities {
+                        if let Some(name) = e.get("name").and_then(|v| v.as_str()) {
+                            map.entry(name.to_string()).or_default().push(label.clone());
+                        }
+                    }
+                }
+            }
+            map
+        };
+        for (entity, domains) in &entity_domains {
+            if domains.len() > 1 {
+                out.push_str(&format!("- 跨领域信号：「{}」出现在 {} 中，表明该概念在不同认知域间流动。\n", entity, domains.join("、")));
+            }
+        }
+
+        // Priority conflict: high-bot vs top-low
+        let high_bot: Vec<&Intention> = data.intentions.iter()
+            .filter(|i| i.priority.name == "high" && i.level.name == "bottom").collect();
+        for i in &high_bot {
+            let sit_label = sorted_sits.iter()
+                .find(|s| data.intention_map.get(&s.name).map_or(false, |v| v.iter().any(|x| x.id == i.id)))
+                .and_then(|s| label_map.get(&s.name))
+                .cloned().unwrap_or_default();
+            out.push_str(&format!("- 注意力竞争：{}的底层意图「{}」被标记为高优先级，说明基础事务正在争夺战略注意力。\n", sit_label, i.title));
+        }
+
+        out.push('\n');
         out
     }
 
