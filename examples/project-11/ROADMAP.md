@@ -15,7 +15,7 @@
 ## Phase 2: 跨周意图追踪
 
 - [ ] `trace <title>` — 追踪同一条意图在跨周中的表述变化
-- [ ] `drift <weekA> <weekB>` — 比较两周间意向的 priority/risk 偏移
+- [ ] `drift <weekA> <weekB>` — 比较同一意图在两周间的 dynamics 演化
 - [ ] 识别"持续意向"（连续多周出现）vs "单周意向"
 - [ ] 输出意图演化表：title → week → priority → risk
 
