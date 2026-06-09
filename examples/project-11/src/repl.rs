@@ -205,6 +205,36 @@ impl Repl {
                         Err(e) => println!("Error: {}", e),
                     }
                 }
+                "relate-intentions" | "ri" => {
+                    if parts.len() < 2 {
+                        println!("Usage: relate-intentions <week>");
+                        continue;
+                    }
+                    match reporter.relate_intentions_llm(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "coverage" => {
+                    if parts.len() < 2 {
+                        println!("Usage: coverage <week>");
+                        continue;
+                    }
+                    match reporter.coverage(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "tension" => {
+                    if parts.len() < 2 {
+                        println!("Usage: tension <week>");
+                        continue;
+                    }
+                    match reporter.tension(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
                 "filter" => {
                     let mut week = None;
                     let mut sit_name = None;
