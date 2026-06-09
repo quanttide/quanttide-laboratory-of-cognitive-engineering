@@ -5,25 +5,26 @@ use crate::query::QueryEngine;
 
 pub struct Repl {
     engine: QueryEngine,
+    gallery_path: String,
 }
 
 impl Repl {
-    pub fn new(engine: QueryEngine) -> Self {
-        Self { engine }
+    pub fn new(engine: QueryEngine, gallery_path: String) -> Self {
+        Self { engine, gallery_path }
     }
 
     pub fn run(&self) -> Result<(), String> {
-        let reporter = ReportGenerator::new(QueryEngine::new(
-            "/home/iguo/repos/quanttide/domains/quanttide-think/docs/gallery",
-        ));
+        let reporter = ReportGenerator::new(QueryEngine::new(&self.gallery_path));
 
         println!("=== Project 11: Situation Engine ===");
+        println!("Gallery: {}", self.gallery_path);
         println!("Commands:");
         println!("  weeks                    - list available weeks");
         println!("  show <week>              - show week summary");
         println!("  landscape <week>         - show week landscape (compact)");
         println!("  explore <name>           - track situation evolution across weeks");
         println!("  registry                 - show situation registry");
+        println!("  report <week>            - generate structured weekly report");
         println!("  exit                     - quit\n");
 
         let stdin = io::stdin();
@@ -36,35 +37,40 @@ impl Repl {
             let parts: Vec<&str> = line.split_whitespace().collect();
             match parts[0] {
                 "exit" | "quit" => break,
-                "weeks" => {
-                    match self.engine.list_weeks() {
-                        Ok(weeks) => {
-                            println!("Available weeks:");
-                            for w in weeks {
-                                println!("  {}", w);
-                            }
-                        }
-                        Err(e) => println!("Error: {}", e),
-                    }
+                "help" => {
+                    println!("Commands:");
+                    println!("  weeks                    - list available weeks");
+                    println!("  show <week>              - show week summary");
+                    println!("  landscape <week>         - show week landscape (compact)");
+                    println!("  explore <name>           - track situation evolution across weeks");
+                    println!("  registry                 - show situation registry");
+                    println!("  report <week>            - generate structured weekly report");
+                    println!("  exit                     - quit");
                 }
-                "registry" => {
-                    match self.engine.registry() {
-                        Ok(reg) => {
-                            println!("Situation Registry:");
-                            for r in reg {
-                                println!("  {}: {}", r.name, r.label);
-                            }
+                "weeks" => match self.engine.list_weeks() {
+                    Ok(weeks) => {
+                        println!("Available weeks:");
+                        for w in weeks {
+                            println!("  {}", w);
                         }
-                        Err(e) => println!("Error: {}", e),
                     }
-                }
+                    Err(e) => println!("Error: {}", e),
+                },
+                "registry" => match self.engine.registry() {
+                    Ok(reg) => {
+                        println!("Situation Registry:");
+                        for r in reg {
+                            println!("  {}: {}", r.name, r.label);
+                        }
+                    }
+                    Err(e) => println!("Error: {}", e),
+                },
                 "show" => {
                     if parts.len() < 2 {
                         println!("Usage: show <week>");
                         continue;
                     }
-                    let week = parts[1];
-                    match reporter.summary(week) {
+                    match reporter.summary(parts[1]) {
                         Ok(s) => println!("{}", s),
                         Err(e) => println!("Error: {}", e),
                     }
@@ -74,8 +80,7 @@ impl Repl {
                         println!("Usage: landscape <week>");
                         continue;
                     }
-                    let week = parts[1];
-                    match reporter.landscape(week) {
+                    match reporter.landscape(parts[1]) {
                         Ok(s) => println!("{}", s),
                         Err(e) => println!("Error: {}", e),
                     }
@@ -85,8 +90,17 @@ impl Repl {
                         println!("Usage: explore <name>");
                         continue;
                     }
-                    let name = parts[1];
-                    match reporter.evolution(name) {
+                    match reporter.evolution(parts[1]) {
+                        Ok(s) => println!("{}", s),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "report" => {
+                    if parts.len() < 2 {
+                        println!("Usage: report <week>");
+                        continue;
+                    }
+                    match reporter.report(parts[1]) {
                         Ok(s) => println!("{}", s),
                         Err(e) => println!("Error: {}", e),
                     }

@@ -70,31 +70,23 @@ impl GalleryLoader {
         let situations = self.load_situations(week)?;
         let intentions = self.load_intentions(week)?;
         let mut intention_map: HashMap<String, Vec<Intention>> = HashMap::new();
-        for intent in &intentions {
-            // infer situation name from filename: first non-week component
-            let name = self
-                .gallery_base
-                .join("intention")
-                .join(week)
-                .read_dir()
-                .ok()
-                .and_then(|entries| {
-                    for e in entries.flatten() {
-                        if e.path().extension().map_or(false, |ext| ext == "yaml") {
-                            let stem = e.path().file_stem().unwrap().to_str().unwrap().to_string();
-                            // check if this file contains this intention id
-                            if let Ok(content) = fs::read_to_string(e.path()) {
-                                if content.contains(&intent.id) {
-                                    return Some(stem);
-                                }
-                            }
+
+        // intentions are loaded per-file; we need to re-group by situation name (filename stem)
+        let intention_dir = self.gallery_base.join("intention").join(week);
+        if let Ok(entries) = fs::read_dir(&intention_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().map_or(false, |e| e == "yaml") {
+                    let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        if let Ok(list) = serde_yaml::from_str::<Vec<Intention>>(&content) {
+                            intention_map.entry(stem).or_default().extend(list);
                         }
                     }
-                    None
-                })
-                .unwrap_or_else(|| "unknown".to_string());
-            intention_map.entry(name).or_default().push(intent.clone());
+                }
+            }
         }
+
         Ok(WeekData {
             week: week.to_string(),
             situations,
