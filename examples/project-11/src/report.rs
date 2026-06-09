@@ -300,6 +300,9 @@ impl ReportGenerator {
             Ok(schemas) => {
                 for s in &schemas {
                     out.push_str(&format!("### {}\n\n", s.label));
+                    if !s.content.usage.is_empty() {
+                        out.push_str(&format!("{}\n\n", s.content.usage));
+                    }
                     for c in &s.content.causals {
                         out.push_str(&format!("- IF {} THEN {}\n", c.condition, c.outcome));
                     }
