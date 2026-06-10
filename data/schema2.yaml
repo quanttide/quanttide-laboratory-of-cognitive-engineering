@@ -13,6 +13,11 @@ schemas:
     - 逻辑隔离
     - Schema隔离
     - 实例隔离
+  - name: 治理机制
+    attributes:
+    - 自然生长
+    - 底线约束
+    - 决策记录
   - name: 信任信号
     attributes:
     - 早期可验证产出
@@ -81,7 +86,7 @@ schemas:
   - key: 团队认知阻力
     value: M0最大，之后递减
   - key: 顾问决策影响力
-    value: 从零开始，随信任积累上升
+    value: 从零开始，非单调递增，可因事故或客户人事变动断崖式回落
   mappings:
   - intent: 防止团队用旧思维做新架构
     action: 认知对齐工作坊 + 最小多租户POC
