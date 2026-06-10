@@ -1,6 +1,10 @@
 use std::io::{self, BufRead};
 
+use quanttide_agent::llm::LLM;
+use quanttide_agent::message::Message;
+
 use crate::discover::KeywordIndex;
+use crate::graph::RelationGraph;
 use crate::intent::{classify, Intent};
 use crate::report::ReportGenerator;
 use crate::query::QueryEngine;
@@ -286,17 +290,58 @@ impl Repl {
                             let latest = weeks.last().cloned().unwrap_or_default();
                             let sits = self.engine.loader.load_situations(&latest).unwrap_or_default();
                             let schemas = self.engine.loader.load_schemas(&latest).unwrap_or_default();
+                            let relations = self.engine.loader.load_situation_relations(&latest).unwrap_or_default();
+                            let graph = RelationGraph::new(&relations);
                             let idx = KeywordIndex::new(&sits, &schemas);
                             let results = idx.search(&q, 5);
                             if results.is_empty() {
                                 println!("未找到相关情境。尝试更精确的关键词。");
                             } else {
                                 println!("相关情境（最新周 {}）：", latest);
-                                for (name, score) in &results {
-                                    let label = sits.iter().find(|s| s.name == *name)
-                                        .map(|s| s.label.as_str()).unwrap_or(name);
-                                    println!("  {}（{}） 匹配度：{}", label, name, score);
-                                }
+                                    for (name, score) in &results {
+                                        let label = sits.iter().find(|s| s.name == *name)
+                                            .map(|s| s.label.as_str()).unwrap_or(name);
+                                        println!("  {}（{}） 匹配度：{}", label, name, score);
+                                        let neighbors = graph.neighbors(name);
+                                        if !neighbors.is_empty() {
+                                            for (n, rel) in &neighbors {
+                                                let nlabel = sits.iter().find(|s| s.name == *n)
+                                                    .map(|s| s.label.as_str()).unwrap_or(n);
+                                                println!("    └ {} → {}（{:?}）", nlabel, label, rel);
+                                            }
+                                        }
+                                    }
+
+                                    // LLM analysis: if query suggests deeper analysis
+                                    let analysis_keywords = ["分析", "总结", "怎么回事", "什么情况", "如何"];
+                                    if analysis_keywords.iter().any(|k| q.contains(k)) {
+                                        let context: Vec<String> = results.iter().map(|(name, _)| {
+                                            let label = sits.iter().find(|s| s.name == *name)
+                                                .map(|s| format!("{}（{}）", s.label, s.name))
+                                                .unwrap_or_else(|| name.clone());
+                                            let neighbors: Vec<String> = graph.neighbors(name).iter().map(|(n, rel)| {
+                                                let nlabel = sits.iter().find(|s| s.name == *n)
+                                                    .map(|s| s.label.as_str()).unwrap_or(n);
+                                                format!("  - {}（{:?}）", nlabel, rel)
+                                            }).collect();
+                                            format!("{}\n关联情境：{}", label, neighbors.join("\n"))
+                                        }).collect();
+                                        let prompt = format!(
+                                            "基于以下数据回答用户问题「{}」。\n\n匹配情境：\n{}\n\n请用中文简要回答，不超过200字。",
+                                            q, context.join("\n\n")
+                                        );
+                                        if let Ok(llm) = std::env::var("LLM_API_KEY").or_else(|_| std::env::var("DEEPSEEK_API_KEY")) {
+                                            if !llm.is_empty() {
+                                                let client = LLM::default();
+                                                if let Ok(resp) = client.complete(
+                                                    &[Message::new("user", &prompt)],
+                                                    Default::default(),
+                                                ) {
+                                                    println!("\nLLM 分析：\n{}", resp.content);
+                                                }
+                                            }
+                                        }
+                                    }
                             }
                         }
                         Intent::Evolution(q) => {

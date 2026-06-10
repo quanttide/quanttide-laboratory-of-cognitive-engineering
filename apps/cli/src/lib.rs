@@ -3,5 +3,6 @@ pub mod query;
 pub mod tokenizer;
 pub mod intent;
 pub mod discover;
+pub mod graph;
 pub mod report;
 pub mod repl;

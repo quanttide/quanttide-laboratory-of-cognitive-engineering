@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use quanttide_think::{
     intention::Intention,
     situation::Situation,
+    situation_relation::SituationRelation,
     schema::Schema,
     domain::Domain,
 };
@@ -117,6 +118,16 @@ impl GalleryLoader {
         }
         weeks.sort();
         Ok(weeks)
+    }
+
+    pub fn load_situation_relations(&self, week: &str) -> Result<Vec<SituationRelation>, String> {
+        let path = self.gallery_base.join("situation-relation").join(format!("{}.yaml", week));
+        let content = match fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => return Ok(Vec::new()),
+        };
+        serde_yaml::from_str(&content)
+            .map_err(|e| format!("Failed to parse situation-relation {}: {}", week, e))
     }
 
     fn build_intention_map(gallery_base: &std::path::PathBuf, week: &str) -> HashMap<String, Vec<Intention>> {
