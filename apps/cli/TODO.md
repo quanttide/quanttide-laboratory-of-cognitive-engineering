@@ -40,55 +40,31 @@
 | `QueryEngine::registry()` | `Repo::worlds()` | ✅ 已迁移 |
 | 无 | `Repo::describe()` | 🆕 新增功能 |
 
-## 待清理代码
+## 清理完成
 
-### `loader.rs` - 数据加载器
-- [ ] 删除 `GalleryLoader` 结构体
-- [ ] 删除所有 `load_*` 方法
-- [ ] 删除 `list_weeks()` 方法
+### 已删除文件
+- [x] `loader.rs` - 数据加载器
+- [x] `query.rs` - 查询引擎
+- [x] `report.rs` - 报告生成器
+- [x] `templates/weekly_report.md` - 模板文件
+- [x] `samples/2026-W23.md` - 示例文件
+- [x] `reports/2026-W23/report.md` - 报告输出
 
-### `query.rs` - 查询引擎
-- [ ] 删除 `QueryEngine` 结构体
-- [ ] 删除 `WeekData` 类型定义
-- [ ] 删除 `week()`、`situation()`、`list_weeks()`、`registry()` 方法
+### 已更新文件
+- [x] `lib.rs` - 移除 `loader`、`query`、`report` 模块声明
+- [x] `main.rs` - 移除旧配置，简化为基本 REPL 启动
+- [x] `repl.rs` - 移除对 `QueryEngine` 和 `ReportGenerator` 的引用
+- [x] `Cargo.toml` - 移除 `quanttide-think`、`quanttide-agent`、`serde`、`serde_yaml`、`chrono`、`serde_json` 依赖
+- [x] `README.md` - 更新为清理后的状态说明
+- [x] `TODO.md` - 创建清理清单
 
-### `model.rs` - 数据模型
-- [ ] 删除与 `DomainFile`、`Snapshot`、`IntentionEntry` 重复的类型定义
+## 清理结果
 
-### `main.rs` - 入口文件
-- [ ] 删除 `--gallery` 参数解析
-- [ ] 删除 `GALLERY_PATH` 环境变量读取
-- [ ] 删除 `QueryEngine` 初始化代码
+- **删除文件数**: 6 个
+- **删除代码行数**: 2969 行
+- **新增代码行数**: 127 行
+- **提交**: `83ad6ff` - "chore: 清理已迁移到正式代码的实验功能"
 
-### `lib.rs` - 库根模块
-- [ ] 移除 `loader` 模块声明（如果完全删除）
-- [ ] 移除 `query` 模块声明（如果完全删除）
+## 相关文档
 
-## 保留功能（未迁移）
-
-以下功能尚未迁移到正式代码，需要保留：
-
-### `report.rs` - 报告生成器
-- [ ] 保留 `summary()`、`landscape()`、`evolution()`、`diff()`、`report()` 方法
-- [ ] 保留 `list_intentions()`、`show_intention()`、`filter_intentions()`、`trace()`、`drift()`、`evolution_table()` 方法
-- [ ] 保留 `relate_llm()`、`llm_gallery_report()` LLM 推理功能
-- [ ] 保留 `compute_relations()`、`render_gallery_report()`、`data_gallery_report()` 辅助函数
-
-### `repl.rs` - 交互式命令行
-- [ ] 保留所有 REPL 命令实现
-
-### `templates/` - 模板文件
-- [ ] 保留 `weekly_report.md` 模板
-
-### `samples/` - 示例文件
-- [ ] 保留 `2026-W23.md` 示例
-
-## 清理顺序建议
-
-1. 先更新 `lib.rs`，移除已迁移模块的导出
-2. 删除 `loader.rs` 和 `query.rs` 文件
-3. 清理 `model.rs` 中重复的类型定义
-4. 更新 `main.rs`，移除已迁移的配置和初始化代码
-5. 更新 `repl.rs`，移除对已迁移模块的引用
-6. 更新 `report.rs`，使用正式代码的 `repo` 模块替代 `loader`
-7. 运行测试确保功能正常
+- [正式代码文档](../../../../apps/qtcloud-think/src/cli/README.md)
