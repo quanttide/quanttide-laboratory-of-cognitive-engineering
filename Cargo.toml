@@ -7,3 +7,4 @@ edition = "2021"
 qtcloud-think-cli = { path = "../../apps/qtcloud-think/src/cli" }
 quanttide-think = { path = "../../packages/quanttide-think-toolkit/packages/rust" }
 quanttide-agent = { path = "../../packages/quanttide-agent-toolkit/packages/rust" }
+serde_yaml = "0.9"

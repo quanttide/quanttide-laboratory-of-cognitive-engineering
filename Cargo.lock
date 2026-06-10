@@ -378,6 +378,7 @@ dependencies = [
  "qtcloud-think-cli",
  "quanttide-agent",
  "quanttide-think",
+ "serde_yaml",
 ]
 
 [[package]]

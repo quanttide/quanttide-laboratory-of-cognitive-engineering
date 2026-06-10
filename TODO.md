@@ -40,26 +40,26 @@
 ## 实验步骤
 
 ### Step 1: 对照组 A — 纯数据访问
-- [ ] 用 `serde_yaml` 直接读取 `data/journal/quanttide-founder/2026-W23/*.yaml`
-- [ ] 输出：列出所有 domain 的 schemas/situations/intentions
-- [ ] 评估：能回答什么问题？不能回答什么问题？
+- [x] 用 `serde_yaml` 直接读取 `data/journal/quanttide-founder/2026-W23/*.yaml`
+- [x] 输出：列出所有 domain 的 schemas/situations/intentions
+- [x] 评估：能回答什么问题？不能回答什么问题？
 
 ### Step 2: 实验组 B — CLI 接口
-- [ ] 用 `qtcloud-think-cli` 的 `Repo` 读取同一份数据
-- [ ] 调用 `describe()`、`relations()`、`track_evolution()`
-- [ ] 输出：加上了关系网络、一致性状态、演化轨迹
-- [ ] 评估：规则引擎增加了什么价值？
+- [x] 用 `qtcloud-think-cli` 的 `Repo` 读取同一份数据
+- [x] 调用 `describe()`、`relations()`、`track_evolution()`
+- [x] 输出：加上了关系网络、一致性状态、演化轨迹
+- [x] 评估：规则引擎增加了什么价值？
 
 ### Step 3: 实验组 C — CLI + LLM
-- [ ] 将 B 的输出作为上下文，发给 LLM
-- [ ] Prompt："基于以下认知工程数据，生成单租户升级多租户的技术方案与报价"
-- [ ] 输出：完整的咨询交付物
-- [ ] 评估：LLM 综合是否产生了增量价值？
+- [x] 将 B 的输出作为上下文，发给 LLM
+- [x] Prompt："基于以下认知工程数据，生成单租户升级多租户的技术方案与报价"
+- [x] 输出：完整的咨询交付物
+- [x] 评估：LLM 综合是否产生了增量价值？
 
 ### Step 4: 对比总结
-- [ ] A vs B：纯数据 vs 规则引擎，哪个信息更有用？
-- [ ] B vs C：结构化数据 vs LLM 综合，哪个产出更可交付？
-- [ ] 结论：三者的分工应该是什么？
+- [x] A vs B：纯数据 vs 规则引擎，哪个信息更有用？
+- [x] B vs C：结构化数据 vs LLM 综合，哪个产出更可交付？
+- [x] 结论：三者的分工应该是什么？
 
 ## 文件
 
