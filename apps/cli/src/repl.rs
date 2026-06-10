@@ -49,19 +49,14 @@ impl Repl {
             match parts[0] {
                 "exit" | "quit" => break,
                 "help" => {
-                    println!("Commands:");
-                    println!("  weeks                    - list available weeks");
-                    println!("  show <week>              - show week summary");
-                    println!("  landscape <week>         - show week landscape (compact)");
-                    println!("  explore <name>           - track situation evolution across weeks");
-                    println!("  registry                 - show situation registry");
-                    println!("  report <week>            - generate structured weekly report");
-                    println!("  diff <weekA> <weekB>      - compare two weeks");
-                    println!("  relate <week>            - LLM infer situation relations");
-                    println!("  intentions [week] [name]  - list intentions");
-                    println!("  intention <id>           - show intention detail");
-                    println!("  filter <options>         - filter intentions");
-                    println!("  exit                     - quit");
+                    println!("输入任何文字自动理解意图并执行。");
+                    println!("你也可以精确指定命令：");
+                    println!("  情境查询: 输入关键词（如「组织管理」「基础设施」）");
+                    println!("  演化分析: 输入含「演化」「趋势」「变化」的描述");
+                    println!("  对比分析: 输入含「对比」「diff」的描述");
+                    println!("  关系分析: 输入含「关系」「关联」「冲突」的描述");
+                    println!("  精确命令: weeks / show / report / diff / intentions / drift");
+                    println!("  exit                     - 退出");
                 }
                 "weeks" => match self.engine.list_weeks() {
                     Ok(weeks) => {
