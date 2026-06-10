@@ -39,7 +39,7 @@
 
 | Step | 输出 | 状态 |
 |------|------|------|
-| 1. 提取源图式 | `data/中间文件/source-schemas.md` | ✓ |
-| 2. 映射目标问题 | `data/中间文件/migration-map.md` | ✓ |
-| 3. 合成新图式 | `data/中间文件/framework.md` | ✓ |
+| 1. 提取源图式 | `data/intermediate/source-schemas.md` | ✓ |
+| 2. 映射目标问题 | `data/intermediate/migration-map.md` | ✓ |
+| 3. 合成新图式 | `data/intermediate/framework.md` | ✓ |
 | 4. 验证 | `data/output/upgrade-plan.md` | ✓ |
