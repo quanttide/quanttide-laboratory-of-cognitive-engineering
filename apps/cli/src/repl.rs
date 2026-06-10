@@ -34,8 +34,8 @@ impl Repl {
         println!("  trace <title>            - find intention across weeks");
         println!("  drift <weekA> <weekB> <name> - compare priority/risk shift");
         println!("  evolve <name>            - intention evolution table");
-        println!("  discover <query>         - keyword search across situations");
-        println!("  exit                     - quit\n");
+        println!("  exit                     - quit");
+        println!("\n输入任何字符串自动关联情境；输入 exit 退出。\n");
 
         let stdin = io::stdin();
         for line in stdin.lock().lines() {
@@ -247,32 +247,6 @@ impl Repl {
                         Err(e) => println!("Error: {}", e),
                     }
                 }
-                "discover" => {
-                    if parts.len() < 2 {
-                        println!("Usage: discover <query>");
-                        continue;
-                    }
-                    let query = parts[1..].join(" ");
-                    let weeks = match self.engine.list_weeks() {
-                        Ok(w) => w,
-                        Err(e) => { println!("Error: {}", e); continue; }
-                    };
-                    let latest = weeks.last().cloned().unwrap_or_default();
-                    let sits = self.engine.loader.load_situations(&latest).unwrap_or_default();
-                    let schemas = self.engine.loader.load_schemas(&latest).unwrap_or_default();
-                    let idx = KeywordIndex::new(&sits, &schemas);
-                    let results = idx.search(&query, 5);
-                    if results.is_empty() {
-                        println!("No matching situations found.");
-                    } else {
-                        println!("Matching situations:");
-                        for (name, score) in results {
-                            let label = sits.iter().find(|s| s.name == name)
-                                .map(|s| s.label.as_str()).unwrap_or(&name);
-                            println!("  {} ({}): score={}", label, name, score);
-                        }
-                    }
-                }
                 "filter" => {
                     let mut week = None;
                     let mut sit_name = None;
@@ -306,7 +280,25 @@ impl Repl {
                     }
                 }
                 _ => {
-                    println!("Unknown command: {}", line);
+                    let weeks = match self.engine.list_weeks() {
+                        Ok(w) => w,
+                        Err(_) => { println!("No gallery data loaded."); continue; }
+                    };
+                    let latest = weeks.last().cloned().unwrap_or_default();
+                    let sits = self.engine.loader.load_situations(&latest).unwrap_or_default();
+                    let schemas = self.engine.loader.load_schemas(&latest).unwrap_or_default();
+                    let idx = KeywordIndex::new(&sits, &schemas);
+                    let results = idx.search(line, 5);
+                    if results.is_empty() {
+                        println!("未找到相关情境。尝试更精确的关键词。");
+                    } else {
+                        println!("相关情境（最新周 {}）：", latest);
+                        for (name, score) in &results {
+                            let label = sits.iter().find(|s| s.name == *name)
+                                .map(|s| s.label.as_str()).unwrap_or(name);
+                            println!("  {}（{}） 匹配度：{}", label, name, score);
+                        }
+                    }
                 }
             }
         }
