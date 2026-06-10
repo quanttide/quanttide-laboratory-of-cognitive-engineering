@@ -4,57 +4,59 @@
 测试用例：单租户→多租户技术升级方案（方案只是验证材料，非最终产出）。
 真实产出：图式迁移方法论 + 过程记录 + 可复用性评估。
 
-## Step 1：提取源图式（已完成，待整理）
+## Step 1：提取源图式
 
-- [x] 从 9 个 domain 中提取了 entities / causals / boundaries / mappings
+- [x] 从 9 个 domain 中提取 entities / causals / boundaries / mappings
 - [x] 标注了每个 schema 在创始人语境中的角色
-- [ ] 整理输出：只保留图式本身，去掉后续的错误偏移
+- [x] 发现遗漏：biases（反例知识）被忽略，已在验证中补充
 
-**原始产出**: `data/intermediate/source-schemas.md`（10% 可用，需要剪裁）
+**产出**: `data/intermediate/source-schemas.md`
 
-## Step 2：复盘映射过程（新）
+## Step 2：复盘映射过程
 
-- [ ] 回顾映射过程：我为什么选择"技术升级"作为目标？为什么产出了方案而非方法论？
-- [ ] 识别关键分岔点：哪一步决策让我从"记录方法"滑向了"产出方案"？
-- [ ] 记录每个 mapping 决策的 reasoning——为什么这个源结构对应那个目标结构
-- [ ] 输出：映射决策日志（重点关注错误的推理路径）
+- [x] 识别 4 个关键分岔点（目标错误、结果非过程、框架非方法、验证非验证）
+- [x] 记录每个分岔点的推理路径和纠正方向
+- [x] 输出反事实路径——正确路径应该是什么样
 
-## Step 3：提炼方法论（新）
+**产出**: `data/intermediate/decision-log.md`
 
-- [ ] 从 Step 1→2 的实际操作中，倒推出我实际使用的转移程序
-  - 如何从原始 YAML 中识别 schema 核心结构？
-  - 如何判断"这个结构在对方问题上对应什么"？
-  - 如何识别不可迁移的部分？
-- [ ] 区分"可复用的方法" vs "仅本次有效的直觉"
-- [ ] 输出：图式转移方法草案（手工可执行的步骤）
+## Step 3：提炼方法论
+
+- [x] 定义 0-5 步的图式转移方法
+- [x] 定义 4 种映射类型（结构同构/隐喻迁移/反例学习/约束标记）
+- [x] 每个类型有判定条件和转移规则
+- [x] 区分"可复用的方法" vs "仅本次有效的直觉"
+
+**产出**: `data/intermediate/transfer-method.md`
 
 ## Step 4：评估可自动化程度
 
-- [ ] 方法中哪些步骤可以写成程序/工具？
-  - 源图式提取 → 可自动化吗？
-  - 迁移映射 → 需要人类判断吗？
-  - 新图式合成 → 需要 LLM 还是规则引擎？
-- [ ] 评估方法中"创始人的个人认知情境"的剥离程度
-- [ ] 输出：可自动化边界报告
+- [x] 全自动层：YAML 解析 + 结构提取 + 按类型分类
+- [x] LLM 辅助层：角色标注、映射类型识别、方法执行
+- [x] 人工层：目标设定、推理记录、验证判断
+
+**产出**: `data/intermediate/automation-boundary.md`
 
 ## Step 5：验证方法
 
-- [ ] 用提炼出的方法重新做一次转移（同一个问题）
-- [ ] 对比第一次（走偏的）和第二次（按方法走的）差异
-- [ ] 输出：方法验证记录
+- [x] 按 transfer-method.md 重新执行转移
+- [x] 发现方法遗漏（缺少 biases 提取、缺少 dynamics 映射规则）
+- [x] 验证结果：方法可用，可复现性 9/10，完整性 6/10
+
+**产出**: `data/output/validation-record.md`
 
 ## 阶段 1 真实产出
 
-| 产出 | 用途 |
-|------|------|
-| `data/intermediate/source-schemas.md` | 原始材料（需剪裁） |
-| `data/intermediate/migration-decision-log.md` | 映射过程的 reasoning 记录 |
-| `data/intermediate/transfer-method.md` | 图式转移方法草案 |
-| `data/intermediate/automation-boundary.md` | 可自动化边界报告 |
-| 一份真的方案（用方法重新产出） | 方法验证材料 |
+| 产出 | 类型 | 位置 |
+|------|------|------|
+| 源图式清单 | 原始材料 | `data/intermediate/source-schemas.md` |
+| 映射决策日志 | 过程记录 | `data/intermediate/decision-log.md` |
+| 图式转移方法草案 | 方法论 | `data/intermediate/transfer-method.md` |
+| 可自动化边界报告 | 评估 | `data/intermediate/automation-boundary.md` |
+| 方法验证记录 | 验证 | `data/output/validation-record.md` |
 
-## 原则
+## 阶段 1 结论
 
-- 实验的客户是"方法论"，不是"那家公司"
-- 多租户方案只是验证材料，不是产出
-- 最终可交付的是方法，不是方案
+- 方法可用但完整性不足（6/10）：缺少 biases 和 dynamics 的映射规则
+- 方法的价值不在于"让结果更正确"，而在于"让过程和限制可见"
+- 阶段 2 自动化方向已明确：代码做结构化提取，LLM 做映射执行，人工做判断
