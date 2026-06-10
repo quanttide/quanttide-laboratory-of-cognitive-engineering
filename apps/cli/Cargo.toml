@@ -11,4 +11,3 @@ chrono = { version = "0.4", features = ["serde"] }
 quanttide-think = { path = "../../../../packages/quanttide-think-toolkit/packages/rust" }
 quanttide-agent = { path = "../../../../packages/quanttide-agent-toolkit/packages/rust" }
 serde_json = "1"
-regex = "1"
