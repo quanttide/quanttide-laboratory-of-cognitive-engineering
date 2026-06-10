@@ -1,6 +1,7 @@
 use std::io::{self, BufRead};
 
 use crate::discover::KeywordIndex;
+use crate::intent::{classify, Intent};
 use crate::report::ReportGenerator;
 use crate::query::QueryEngine;
 
@@ -280,23 +281,71 @@ impl Repl {
                     }
                 }
                 _ => {
-                    let weeks = match self.engine.list_weeks() {
-                        Ok(w) => w,
-                        Err(_) => { println!("No gallery data loaded."); continue; }
-                    };
-                    let latest = weeks.last().cloned().unwrap_or_default();
-                    let sits = self.engine.loader.load_situations(&latest).unwrap_or_default();
-                    let schemas = self.engine.loader.load_schemas(&latest).unwrap_or_default();
-                    let idx = KeywordIndex::new(&sits, &schemas);
-                    let results = idx.search(line, 5);
-                    if results.is_empty() {
-                        println!("未找到相关情境。尝试更精确的关键词。");
-                    } else {
-                        println!("相关情境（最新周 {}）：", latest);
-                        for (name, score) in &results {
-                            let label = sits.iter().find(|s| s.name == *name)
-                                .map(|s| s.label.as_str()).unwrap_or(name);
-                            println!("  {}（{}） 匹配度：{}", label, name, score);
+                    let intent = classify(line);
+                    match intent {
+                        Intent::Explore(q) => {
+                            let weeks = match self.engine.list_weeks() {
+                                Ok(w) => w,
+                                Err(_) => { println!("No gallery data loaded."); continue; }
+                            };
+                            let latest = weeks.last().cloned().unwrap_or_default();
+                            let sits = self.engine.loader.load_situations(&latest).unwrap_or_default();
+                            let schemas = self.engine.loader.load_schemas(&latest).unwrap_or_default();
+                            let idx = KeywordIndex::new(&sits, &schemas);
+                            let results = idx.search(&q, 5);
+                            if results.is_empty() {
+                                println!("未找到相关情境。尝试更精确的关键词。");
+                            } else {
+                                println!("相关情境（最新周 {}）：", latest);
+                                for (name, score) in &results {
+                                    let label = sits.iter().find(|s| s.name == *name)
+                                        .map(|s| s.label.as_str()).unwrap_or(name);
+                                    println!("  {}（{}） 匹配度：{}", label, name, score);
+                                }
+                            }
+                        }
+                        Intent::Evolution(q) => {
+                            let sits = match self.engine.list_weeks().ok()
+                                .and_then(|w| w.last().cloned())
+                                .and_then(|week| self.engine.loader.load_situations(&week).ok())
+                            {
+                                Some(s) => s,
+                                None => { println!("无法加载情境数据。"); continue; }
+                            };
+                            // Try to find a situation name in the query
+                            let matched = sits.iter().find(|s| q.contains(&s.name) || q.contains(&s.label));
+                            match matched {
+                                Some(sit) => match reporter.evolution(&sit.name) {
+                                    Ok(r) => println!("{}", r),
+                                    Err(e) => println!("Error: {}", e),
+                                },
+                                None => println!("请指定具体情境名，如「认知工程的演化」"),
+                            }
+                        }
+                        Intent::Compare(_q) => {
+                            let weeks = match self.engine.list_weeks() {
+                                Ok(w) => w,
+                                Err(_) => { println!("No gallery data."); continue; }
+                            };
+                            if weeks.len() >= 2 {
+                                let last = weeks.last().unwrap();
+                                let prev = weeks.get(weeks.len().saturating_sub(2)).unwrap();
+                                match reporter.diff(prev, last) {
+                                    Ok(r) => println!("{}", r),
+                                    Err(e) => println!("Error: {}", e),
+                                }
+                            }
+                        }
+                        Intent::Relate(_q) => {
+                            let weeks = match self.engine.list_weeks() {
+                                Ok(w) => w,
+                                Err(_) => { println!("No gallery data."); continue; }
+                            };
+                            let latest = weeks.last().cloned().unwrap_or_default();
+                            match reporter.tension(&latest) {
+                                Ok(r) => println!("{}", r),
+                                Err(e) => println!("Error: {}", e),
+                            }
                         }
                     }
                 }
