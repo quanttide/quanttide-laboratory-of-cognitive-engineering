@@ -15,9 +15,9 @@
 | 阶段 | 状态 | 说明 |
 |------|------|------|
 | 0 奠基 | ✅ 完成 | 理论对齐 + 质量框架 + 基线评估 |
-| 1 方法论 | ✅ 完成 | 迁移框架 + 映射验证 + 第一次迁移（质量 2.86→4.14） |
-| 2 自动化 P0-P2 | ✅ 完成 | filler + assessor + classifier prompt（Rust CLI） |
-| 2 自动化 P3-P4 | 🔄 当前 | 数据层验证 + 报告层 |
+| 1 方法论 | ✅ 完成 | 迁移框架 + 映射验证 + 跨 domain 迁移（think/business/health 均跑通） |
+| 2 自动化 | ✅ 完成 | Rust CLI（fill + assess），跨域验证（3 domain ≥3.57，注解后可到 4+） |
+| 3 验证 | 🔄 当前 | 换人走通 + 客户反馈 |
 
 ## 方法概要
 
@@ -30,21 +30,23 @@ journal → ① Repo::load → ② 理论审视 → ③ 因果拆解（保留类
 
 工具实现：`lab fill <domain>`（合并填充）+ `lab assess <schema.yaml>`（质量评分）。
 
-## 阶段 2：自动化（剩余）
+> **修正（实验后）：** 0.2 质量维度原计划纯从理论推导，执行中发现需合并工程实践引入的 4 个维度（内部一致性/外部有效性/任务适用性/可沟通性）。框架已修正为双来源结构。
 
-### 优先级
+## ✅ 阶段 2：自动化（已完成）
 
-| 优先级 | 内容 | 产品参考 |
-|--------|------|---------|
-| P3 | 数据层验证：确认 `qtcloud-think-cli::Repo` 对所有 domain/week 兼容 | — |
-| P4 | 报告层：自动生成迁移记录和追溯报告 | `Hindsight`——经验追溯机制 |
-| P5 | LLM 分类集成：将 classifier prompt 编码为可交互的 CLI 流程 | `Soar`——规则引擎设计 |
+Rust CLI 实现：`lab fill`（跨周合并+注解） + `lab assess`（7 维度评分）。
 
-### 验证标准
+跨域验证结果：3 domain（think/business/health）均 ≥3.57，注解后可达 4+。
+**每个 domain 的瓶颈不同，不存在万能参数。** 自动化的验证标准已从"输出合法 YAML"提升为"每个 domain 注解后需跑到 4+"。
 
-- `lab fill <domain>` 对所有 domain（think/business/health/etc.）输出合法 YAML
-- `lab assess` 评分与手动评估偏差 ≤0.5
-- 新增 domain 的迁移能不写 Rust 代码完成
+## 阶段 3：验证（当前）
+
+### 步骤
+
+| 步骤 | 内容 | 验证标准 |
+|------|------|---------|
+| 3.1 迁移者轮换 | 让第二个咨询师按 `docs/transfer-framework.md` 独立执行一次 think 迁移 | 不需要提问能走通 |
+| 3.2 客户试用 | 把 `data/journal-schema.yaml` 拿给客户看，收集反馈 | 客户能说清楚"哪里有用、哪里没用" |
 
 ### 遗留问题
 
@@ -52,4 +54,6 @@ journal → ① Repo::load → ② 理论审视 → ③ 因果拆解（保留类
 |------|---------|
 | dynamics 命名冲突 | 在 schema 元信息中补充 `maturity` 字段 |
 | 需验证类比例 | 执行第二个 domain 迁移，验证 2:6 是否合理 |
-| products 零引用 | 每次迁移前先扫 products/index.md（已入 AGENTS.md 工作纪律） |
+| products 零引用 | 已修补 AGENTS.md 和 ROADMAP 原则，但执行中仍缺失——需落地 |
+| W20 无 think 数据 | 确认是日志遗漏还是 focus 转移 |
+| 换人走通、客户反馈 | 阶段 3 执行 |
