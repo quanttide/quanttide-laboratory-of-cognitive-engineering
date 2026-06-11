@@ -15,8 +15,24 @@
 
 ### 0.2 质量维度
 
-- [ ] 从图式理论推导 schema 质量评估维度（如 coherence、specificity、bias coverage）
-- [ ] 每个维度定义评分标准（1-5 分或 pass/fail）
+质量维度来源于**两个渠道**，需合并后统一评分标准：
+
+**来源 A — 从图式理论推导**（`library/theories/schema-theory.md`）：
+| 理论概念 | 工程质量维度 |
+|---------|-------------|
+| 默认值填充机制 | 覆盖度（Coverage） |
+| 同化/顺应 | 灵活性与可修正性（Flexibility） |
+| 层次组织 | 复杂度与认知负荷（Complexity） |
+
+**来源 B — 从工程实践引入**（`../../docs/specification/docs/schema.md` 或现有 schema 评审经验）：
+- 内部一致性（Internal Consistency）
+- 外部有效性（External Validity）
+- 任务适用性（Task Fit）
+- 可沟通性（Communicability）
+
+- [ ] 从图式理论推导可直接映射的质量维度（覆盖度、复杂度、灵活性）
+- [ ] 从工程评估标准引入不可通过理论推导的维度（内部一致性、外部有效性、任务适用性、可沟通性）
+- [ ] 合并两个来源，定义统一的评分标准（1-5 分）
 - [ ] 输出质量评估框架到 `docs/quality-framework.md`
 
 ### 0.3 数据接入
