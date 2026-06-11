@@ -2,6 +2,7 @@
 qtcloud_session_*.json
 target/
 apps/intent/data/
+data/journal-ingest.json
 
 
 # Added by cargo
