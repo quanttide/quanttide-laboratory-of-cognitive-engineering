@@ -1,139 +1,102 @@
 # 图式迁移框架
 
-方法：理论引导的图式迁移（Theory-Guided Schema Migration）。
-引用来源：`library/theories/schema-theory.md`、`mental-models.md`、`cognitive-task-analysis.md`。
+方法：理论引导的图式迁移。
+
+## 快速开始
+
+```bash
+# 1. 先查产品和理论
+open library/products/index.md    # 看有没有相关实践
+open library/theories/index.md    # 看有没有相关理论
+
+# 2. 执行迁移 + 评估
+cd examples/default
+cargo build
+./target/debug/lab fill <domain> --weeks W19,W21,W22,W23 --annotations annotations.yaml
+./target/debug/lab assess data/auto-schema.yaml
+```
 
 ## 输入/输出
 
-| | 内容 | 格式 |
-|--|------|------|
-| **输入** | journal 原始日志（quanttide-founder 按周组织的 YAML） | 多文件 YAML |
-| **中间表示** | lab 内部结构化数据（situations / intentions / thoughts） | JSON |
-| **输出** | 结构化 schema（7 要素）+ 追溯记录 + 质量报告 | YAML + MD |
+| | 路径 |
+|--|------|
+| 源数据 | `../../data/journal/quanttide-founder/{week}/{domain}.yaml` |
+| 输出 | `data/auto-schema.yaml` + `reports/` 迁移报告 |
 
 ## 五步流水线
 
-```
-① 数据接入 ──→ ② 理论审视 ──→ ③ 因果拆解 ──→ ④ 结构化填充 ──→ ⑤ 质量评估
-   journal         理论筛子         保留/需验证        7 要素          质量框架
-```
+### ① 数据接入
 
-### ① 数据接入（Data Ingestion）
+**自动运行**：`./target/debug/lab fill <domain> --weeks W19,W21,...`
 
-**输入**：`../../data/journal/quanttide-founder/{week}/{domain}.yaml`
-**输出**：内部表示的 JSON（含 schemas / situations / intentions / thoughts）
-**工具**：`src/data/ingest.py`
+不需要手动解析。工具自动从 journal 读取指定 domain 的跨周数据。
 
-| 角色 | 工作 |
-|------|------|
-| 自动 | YAML 解析、字段提取、格式校验 |
-| 人工 | 确认数据完整性（无遗漏 domain 或周） |
+**人工检查**：确认输出的 domain 列表和周数正确。
 
-### ② 理论审视（Theory Alignment Review）
+### ② 理论审视
 
-**核心**：用图式理论筛子审视原始数据，标记每段内容的理论角色。
+读 `docs/alignment-report.md`，熟悉 7 字段的图式理论对应关系。
 
-| 理论概念 | 审视问题 |
-|---------|---------|
-| 同化/顺应 | 这条 causal 是"已有经验的强化"还是"新经验的适应"？ |
-| 图式生命周期 | 这个 schema 处于 forming/reinforcing/adjusting/restructuring 哪个阶段？ |
-| 默认值填充 | 有哪些隐含的默认假设被当作了显式知识？ |
-| 不完备性（心智模型） | schema 是否承认了自己的不完备？边界条件是否显式？ |
+对每条 causal 问：
+- 这是"已有经验的强化"（同化）还是"新经验的适应"（顺应）？
+- 这个 schema 处于 forming/reinforcing/adjusting/restructuring 哪个阶段？
 
-**参考**：`docs/alignment-report.md` 中的 7 字段对照表。
+### ③ 因果拆解
 
-| 角色 | 工作 |
-|------|------|
-| LLM 辅助 | 逐段提出理论对应的分析建议 |
-| 人工 | 确认/修正 LLM 的分析，签注设计决策 |
+**人工判定**：对每条 causal，判定是保留类还是需验证类。
 
-### ③ 因果拆解（Causal Decomposition）
-
-**核心**：将 journal 中的因果链拆为两类。
-
-| 类型 | 同化/顺应 | 判定条件 | 处理 |
-|------|----------|---------|------|
-| 保留类（retainable） | 同化——新经验融入已有图式 | 跨组织/跨场景通用，不依赖客户特定条件 | 直接写入 schema |
-| 需验证类（verifiable） | 顺应——需调整图式以适应新信息 | 依赖客户的组织结构、权力关系、文化等特定条件 | 标注 verify 字段，设计准入期验证协议 |
-
-**参考**：CTA 的任务分解方法——识别哪些认知活动是通用的（skill/rule-based），哪些是情境依赖的（knowledge-based）。
-
-| 角色 | 工作 |
-|------|------|
-| LLM 辅助 | 对每条 causal 提出分类建议 + 依据 |
-| 人工 | 判定分类，对需验证类补充 verify 条件和验证方法 |
-
-### ④ 结构化填充（Schema Filling）
-
-**核心**：将经过审视和拆解的内容填入 schema 七要素。
-
-| 要素 | 填充来源 | 注意 |
+| 类型 | 判定条件 | 处理 |
 |------|---------|------|
-| usage | 从 situation.agenda + frame 提炼 | 精确而非宽泛 |
-| entities | 从 schema.entities + situation.frame 提取 | 标注关键属性 |
-| causals | 从 ③ 的输出，保留类直接填，需验证类带 verify | 每条 condition→outcome 明确 |
-| boundaries | 从 schema.boundaries + situation.ecology 提取 | 区分适用和排除 |
-| properties | 从 schema.properties + intention.priority/risk 提取 | key-value 形式 |
-| dynamics | 从 schema.dynamics + situation.dynamics 提取 | 区分"领域演化"和"图式自身演化" |
-| mappings | 从 intention + schema.mappings 提取 | intent→action 对 |
-| biases | 从 schema.biases + thoughts 中的反思 | belief→fact 对 |
+| 保留类 | 跨组织通用，不依赖客户特定条件 | 不处理，工具默认标记 |
+| 需验证类 | 依赖客户的组织结构、权力关系、文化等 | 创建 annotations YAML |
 
-| 角色 | 工作 |
-|------|------|
-| LLM 辅助 | 按要素提取建议，填入草稿 |
-| 人工 | 逐要素审核，修改，签注 |
-
-### ⑤ 质量评估（Quality Assessment）
-
-**核心**：用 `docs/quality-framework.md` 的 7 维度打分。
-
-| 角色 | 工作 |
-|------|------|
-| LLM 辅助 | 按框架逐维度建议评分 |
-| 人工 | 复核评分，确认扣分项 |
-| 自动 | 记录基线对比，输出质量报告 |
-
-## 人机分工总表
-
-| 步骤 | 人工 | LLM 辅助 | 自动 |
-|------|------|----------|------|
-| ① 数据接入 | 确认完整性 | — | 解析+校验 |
-| ② 理论审视 | 签注决策 | 分析建议 | — |
-| ③ 因果拆解 | 判定分类，设计验证 | 分类建议 | — |
-| ④ 结构化填充 | 逐要素审核 | 草稿建议 | — |
-| ⑤ 质量评估 | 复核评分 | 评分建议 | 基线对比 |
-
-## 追溯记录格式
-
-每次迁移的输出附带 `transfer-trace.md`，格式：
+**需验证类需要创建 annotations.yaml**，格式：
 
 ```yaml
-migration:
-  week: 2026-W23
-  date: 2026-06-11
-  source_domains: [think, business, ...]
-  steps:
-    - step: 1 数据接入
-      status: ok
-      detail: 9 domains parsed, 7 thoughts
-    - step: 2 理论审视
-      decisions:
-        - field: causals[0]
-          observation: "描述了人类反馈打破AI局部最优"
-          theory_alignment: "同化——已有图式（人机协同）的强化"
-          decision: "保留"
-          signoff: "developer@2026-06-11"
-    - step: 3 因果拆解
-      classifications:
-        - causal: "人类反馈打破AI局部最优 → 辩论收敛"
-          type: retainable
-          rationale: "跨组织通用的人机协同机制"
-    - step: 4 结构化填充
-      changes:
-        - field: dynamics
-          note: "从 '收敛速度' 改为 '领域演化模式'，避免与理论中的'图式自身演化'混淆"
-    - step: 5 质量评估
-      score: 3.2
-      delta: +0.34 from baseline
-      weak_spots: [A-2(灵活性), B-2(外部有效性)]
+causals:
+  - condition: "xxx"    # 与 journal 中一致的 condition 文本
+    type: 需验证
+    verify: "验证通过的条件"
 ```
+
+保存后传给工具：`lab fill <domain> --annotations annotations.yaml`
+
+**示例**：`/tmp/think-annotations.yaml`、`/tmp/health-annotations.yaml`。
+
+### ④ 结构化填充
+
+**自动运行**（包含在 `lab fill` 中）：跨周合并 entities/causals/boundaries/properties/dynamics/mappings/biases。
+
+7 要素自动合并规则：
+
+| 要素 | 合并策略 |
+|------|---------|
+| usage | 从各周的 situation.agenda 汇总 |
+| entities | 按 name 去重合并 attributes |
+| causals | 按 condition 去重，应用 annotations 中的 type/verify |
+| boundaries | 跨周并集 |
+| properties | 按 key 合并，后周覆盖前周 |
+| dynamics | 同上 |
+| mappings | 按 intent 去重 |
+| biases | 按 UUID 去重 |
+
+**人工精选**：自动输出可能包含重复或冗余内容，需要：
+- entities > 7 个时精选（保留核心，合并相似）
+- usage 太长时精简为 1-2 句话
+- boundaries 去重同义项
+
+### ⑤ 质量评估
+
+**自动运行**：`./target/debug/lab assess data/auto-schema.yaml`
+
+7 维度评分，目标 ≥4.0 分。重点检查：
+- A-2 灵活性：是否有需验证类标记
+- A-3 复杂度：实体是否过多
+
+## 首次迁移检查清单
+
+- [ ] 查了 `products/index.md`，找到可参考产品并写进迁移报告
+- [ ] `lab fill` 输出合法 YAML
+- [ ] 需验证类都有 verify 条件
+- [ ] `lab assess` 评分 ≥4.0
+- [ ] 迁移报告写到 `reports/` 目录
