@@ -6,9 +6,10 @@
 - `quanttide-think`
 - `qtcloud-think-cli`
 
-## 只读的仓库
+## 数据输入
 
-- `data/journal`。如需编辑，必须在本仓库内复制。
+- `../../data/journal/`：原始日志，实验的事实输入（只读，如需编辑必须复制到本仓库内）。
+- `docs/gallery/`：可选参考，不强制消费。
 
 ## 工作纪律
 
