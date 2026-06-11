@@ -1,6 +1,6 @@
 # TODO
 
-当前优先级：**阶段 2 剩余（P3-P5）**。
+当前优先级：**验证链闭合**（换人走通 + 客户反馈）。
 
 ## ✅ P0：结构化填充（已完成）
 
@@ -39,5 +39,8 @@
 
 ## 跨阶段
 
-- [ ] 执行第二个 domain（business 或 health）的完整迁移，验证框架多域适用性
+- [x] 执行第二个 domain（business 或 health）的完整迁移，验证框架多域适用性
+- [x] 执行第三个 domain（health），验证框架泛化性 → 3 domain 验证完成
+- [ ] **换人走通**：让另一个咨询师按 `docs/transfer-framework.md` 跑一次 think 迁移，不用提问能走通
+- [ ] **客户反馈**：把 `data/journal-schema.yaml` 拿给客户看，问"有用吗"，记录"哪里有用、哪里没用"
 - [ ] 每次迁移前先查 `library/products/index.md`（已入 AGENTS.md 工作纪律）
