@@ -3,7 +3,8 @@ mod transfer;
 mod report;
 
 use std::path::PathBuf;
-use data::{load_journal, load_annotations, JournalSchema};
+use qtcloud_think_cli::repo::Repo;
+use crate::data::{load_annotations, SchemaFile};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -14,9 +15,15 @@ fn main() {
         std::process::exit(1);
     }
 
-    let journal_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("data")
-        .join("journal-ingest.json");
+    // Determine journal path: try env var, then default
+    let journal_path = std::env::var("JOURNAL_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../data/journal")
+                .canonicalize()
+                .unwrap()
+        });
 
     match args[1].as_str() {
         "fill" => cmd_fill(&args, &journal_path),
@@ -28,7 +35,6 @@ fn main() {
 fn cmd_fill(args: &[String], journal_path: &PathBuf) {
     let domain = &args[2];
 
-    // Parse optional flags
     let mut weeks_filter: Option<Vec<String>> = None;
     let mut annotations_path: Option<PathBuf> = None;
     let mut i = 3;
@@ -39,40 +45,37 @@ fn cmd_fill(args: &[String], journal_path: &PathBuf) {
         } else if args[i] == "--annotations" && i + 1 < args.len() {
             annotations_path = Some(PathBuf::from(&args[i+1]));
             i += 2;
-        } else {
-            i += 1;
-        }
+        } else { i += 1; }
     }
 
-    let journal = match load_journal(journal_path) {
-        Ok(j) => j,
-        Err(e) => { eprintln!("Failed to load journal: {}", e); std::process::exit(1); }
-    };
-
+    let repo = Repo::open(journal_path);
+    let world = "quanttide-founder";
     let annotations = annotations_path.as_ref().and_then(|p| load_annotations(p).ok());
 
-    // Collect weeks data for domain
-    let mut weeks_data: Vec<&data::JournalDomain> = Vec::new();
-    for (week_name, domains) in &journal.weeks {
-        if let Some(ref wf) = weeks_filter {
-            if !wf.contains(week_name) {
-                continue;
-            }
-        }
-        if let Some(jd) = domains.get(domain) {
-            weeks_data.push(jd);
+    // Collect weeks
+    let all_weeks = repo.periods(world).unwrap_or_default();
+    let selected_weeks: Vec<&str> = if let Some(ref wf) = weeks_filter {
+        all_weeks.iter().filter(|w| wf.contains(w)).map(|s| s.as_str()).collect()
+    } else {
+        all_weeks.iter().map(|s| s.as_str()).collect()
+    };
+
+    let mut weeks_data: Vec<qtcloud_think_cli::repo::DomainFile> = Vec::new();
+    for week in &selected_weeks {
+        if let Ok(df) = repo.load(world, week, domain) {
+            weeks_data.push(df);
         }
     }
 
     if weeks_data.is_empty() {
-        eprintln!("No data for domain '{}'", domain);
+        eprintln!("No data for domain '{}' in selected weeks", domain);
         std::process::exit(1);
     }
 
-    let schema = transfer::fill_schema(&weeks_data, annotations.as_ref());
-    let output = serde_yaml::to_string(&JournalSchemaOutput {
-        schemas: vec![schema],
-    }).expect("serialization failed");
+    let refs: Vec<&qtcloud_think_cli::repo::DomainFile> = weeks_data.iter().collect();
+    let schema = transfer::fill_schema(&refs, annotations.as_ref());
+    let output = serde_yaml::to_string(&SchemaFile { schemas: vec![schema] })
+        .expect("serialization failed");
     println!("{}", output);
 }
 
@@ -82,25 +85,15 @@ fn cmd_assess(args: &[String]) {
         std::process::exit(1);
     }
     let path = PathBuf::from(&args[2]);
-    let file = match std::fs::File::open(&path) {
-        Ok(f) => f,
-        Err(e) => { eprintln!("Failed to open {}: {}", path.display(), e); std::process::exit(1); }
-    };
-    let wrapper: JournalSchemaOutput = match serde_yaml::from_reader(file) {
-        Ok(w) => w,
-        Err(e) => { eprintln!("YAML parse error: {}", e); std::process::exit(1); }
-    };
-    let schema = wrapper.schemas.into_iter().next()
-        .unwrap_or_else(|| JournalSchema {
-            usage: None, entities: None, causals: None, boundaries: None,
-            properties: None, dynamics: None, mappings: None, biases: None,
-        });
+    let file = std::fs::File::open(&path).unwrap_or_else(|e| {
+        eprintln!("Failed to open {}: {}", path.display(), e);
+        std::process::exit(1);
+    });
+    let wrapper: SchemaFile = serde_yaml::from_reader(file).unwrap_or_else(|e| {
+        eprintln!("YAML parse error: {}", e);
+        std::process::exit(1);
+    });
+    let schema = wrapper.schemas.into_iter().next().unwrap_or_default();
     let assessment = report::assess(&schema);
     println!("{}", report::format_report(&assessment));
-}
-
-/// Output wrapper for schema YAML.
-#[derive(serde::Serialize, serde::Deserialize)]
-struct JournalSchemaOutput {
-    schemas: Vec<JournalSchema>,
 }

@@ -9,6 +9,4 @@ quanttide-think = { path = "../../packages/quanttide-think-toolkit/packages/rust
 quanttide-agent = { path = "../../packages/quanttide-agent-toolkit/packages/rust" }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
-serde_json = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }

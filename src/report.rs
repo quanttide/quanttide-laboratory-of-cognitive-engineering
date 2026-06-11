@@ -1,4 +1,4 @@
-use crate::data::JournalSchema;
+use crate::data::OutputSchema;
 
 pub struct DimensionScore {
     pub name: &'static str,
@@ -11,7 +11,7 @@ pub struct Assessment {
     pub total: f64,
 }
 
-fn score_coverage(schema: &JournalSchema) -> DimensionScore {
+fn score_coverage(schema: &OutputSchema) -> DimensionScore {
     let n_props = schema.properties.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_dynamics = schema.dynamics.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_entities = schema.entities.as_ref().map(|v| v.len()).unwrap_or(0);
@@ -36,7 +36,7 @@ fn score_coverage(schema: &JournalSchema) -> DimensionScore {
     }
 }
 
-fn score_flexibility(schema: &JournalSchema) -> DimensionScore {
+fn score_flexibility(schema: &OutputSchema) -> DimensionScore {
     let causals = match schema.causals.as_ref() {
         Some(c) => c,
         None => return DimensionScore { name: "A-2 灵活性", score: 1, detail: "无因果链".into() },
@@ -60,7 +60,7 @@ fn score_flexibility(schema: &JournalSchema) -> DimensionScore {
     }
 }
 
-fn score_complexity(schema: &JournalSchema) -> DimensionScore {
+fn score_complexity(schema: &OutputSchema) -> DimensionScore {
     let n_entities = schema.entities.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_causals = schema.causals.as_ref().map(|v| v.len()).unwrap_or(0);
 
@@ -86,7 +86,7 @@ fn score_complexity(schema: &JournalSchema) -> DimensionScore {
     DimensionScore { name: "A-3 复杂度", score, detail }
 }
 
-fn score_consistency(schema: &JournalSchema) -> DimensionScore {
+fn score_consistency(schema: &OutputSchema) -> DimensionScore {
     let n_causals = schema.causals.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_biases = schema.biases.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_mappings = schema.mappings.as_ref().map(|v| v.len()).unwrap_or(0);
@@ -102,7 +102,7 @@ fn score_consistency(schema: &JournalSchema) -> DimensionScore {
     DimensionScore { name: "B-1 内部一致性", score, detail }
 }
 
-fn score_external_validity(schema: &JournalSchema) -> DimensionScore {
+fn score_external_validity(schema: &OutputSchema) -> DimensionScore {
     let has_verify = schema.causals.as_ref()
         .map(|c| c.iter().any(|c| c.verify.is_some()))
         .unwrap_or(false);
@@ -124,7 +124,7 @@ fn score_external_validity(schema: &JournalSchema) -> DimensionScore {
     DimensionScore { name: "B-2 外部有效性", score, detail: detail.into() }
 }
 
-fn score_task_fit(schema: &JournalSchema) -> DimensionScore {
+fn score_task_fit(schema: &OutputSchema) -> DimensionScore {
     let usage = schema.usage.as_deref().unwrap_or("");
     let n_causals = schema.causals.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_mappings = schema.mappings.as_ref().map(|v| v.len()).unwrap_or(0);
@@ -143,7 +143,7 @@ fn score_task_fit(schema: &JournalSchema) -> DimensionScore {
     DimensionScore { name: "B-3 任务适用性", score, detail }
 }
 
-fn score_communicability(schema: &JournalSchema) -> DimensionScore {
+fn score_communicability(schema: &OutputSchema) -> DimensionScore {
     let usage = schema.usage.as_deref().unwrap_or("");
     let n_boundaries = schema.boundaries.as_ref().map(|v| v.len()).unwrap_or(0);
     let n_entities = schema.entities.as_ref().map(|v| v.len()).unwrap_or(0);
@@ -161,7 +161,7 @@ fn score_communicability(schema: &JournalSchema) -> DimensionScore {
     DimensionScore { name: "B-4 可沟通性", score: score.min(5), detail }
 }
 
-pub fn assess(schema: &JournalSchema) -> Assessment {
+pub fn assess(schema: &OutputSchema) -> Assessment {
     let dims = vec![
         score_coverage(schema),
         score_flexibility(schema),

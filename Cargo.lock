@@ -375,12 +375,10 @@ dependencies = [
 name = "lab"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "qtcloud-think-cli",
  "quanttide-agent",
  "quanttide-think",
  "serde",
- "serde_json",
  "serde_yaml",
  "uuid",
 ]
