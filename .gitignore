@@ -3,6 +3,8 @@ qtcloud_session_*.json
 target/
 apps/intent/data/
 data/journal-ingest.json
+data/auto-schema.yaml
+data/auto-assessment.md
 
 
 # Added by cargo
