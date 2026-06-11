@@ -1,40 +1,41 @@
 # TODO
 
-当前优先级：**阶段 2 自动化**。按 ROADMAP 的优先级排序。
+当前优先级：**阶段 2 剩余（P3-P5）**。
 
-## P0：自动化结构化填充
+## ✅ P0：结构化填充（已完成）
 
-步骤 ④ 的规则最明确，编码收益最大。
+| task | 文件 | 验证 |
+|------|------|------|
+| 跨周合并 + 注解匹配 | `src/transfer.rs` | `lab fill think --annotations x.yaml` 输出正确 |
+| 模糊条件匹配 | `src/transfer.rs` `normalize()` | annotation 跨周同义匹配通过 |
 
-- [ ] 复习 `docs/transfer-framework.md` 步骤 ④ 的填充规则（7 要素各从 journal 哪个字段提取）
-- [ ] 将填充规则编码为可组合的转换函数（Python：`src/transfer/filler.py`）
-  - 输入：journal 内部表示（JSON） + 人工标注（保留类/需验证类）
-  - 输出：schema YAML 草稿
-- [ ] 用 W23 think 数据测试，对比手动产出 `data/journal-schema.yaml`
+## ✅ P1：质量评估（已完成）
 
-## P1：自动化质量评估
+| task | 文件 | 验证 |
+|------|------|------|
+| 7 维度自动评分 | `src/report.rs` | `lab assess data/journal-schema.yaml` → 4.57/5 |
 
-`docs/quality-framework.md` 的 7 维度可编码为评分函数。
+## ✅ P2：因果拆解 LLM prompt（已完成）
 
-- [ ] 为每个维度定义可计算的评分逻辑（Python：`src/report/assessor.py`）
-- [ ] 输入 schema YAML + journal 数据 → 输出 7 维度分数 + 总分
-- [ ] 自动对比基线（`data/baseline-assessment.md`），输出差异
+| task | 文件 |
+|------|------|
+| 分类规则 + 输入输出格式 | 已删除（Rust 化），规则已编码到 `src/transfer.rs` 的 annotation 逻辑 |
 
-## P2：因果拆解 LLM 辅助
+## P3：数据层验证
 
-- [ ] 编写 LLM prompt，对 journal 中的 causal 提出分类建议（保留类/需验证类）
-- [ ] 输出格式为人工可直接签注的 YAML
-- [ ] 测试：用 W19-W23 所有 domain 的 causals 验证分类准确率
-
-## P3：数据层封装
-
-- [ ] 将 `src/data/ingest.py` 封装为可 import 的模块
-- [ ] 集成 `quanttide-think` 数据模型做字段校验
+- [ ] 用 `lab fill` 测试所有 domain（think / business / health / innov / meta / infra / org / product / write）
+- [ ] 验证 `Repo::periods("quanttide-founder")` 在不同环境下路径正确
+- [ ] 确认 `JOURNAL_PATH` 环境变量覆盖机制可用
 
 ## P4：报告层
 
-- [ ] 自动生成 `reports/` 下的迁移记录（含理论引用、设计决策、分岔点）
-- [ ] 自动生成 `data/transfer-trace.md`
+- [ ] `lab report <domain>` 输出完整迁移记录（含 usage、causals 统计、质量评分）
+- [ ] 输出到 `reports/` 目录，Markdown 格式
+
+## P5：LLM 分类集成
+
+- [ ] 实现 `lab classify <domain>` 交互流程：读取 causals → 逐条输出 → 等待人工判定
+- [ ] 判定结果直接输出为 annotations YAML（`lab fill` 可直接消费）
 
 ## 跨阶段
 
