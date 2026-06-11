@@ -59,7 +59,7 @@ library（理论）→ 建模参考       data/journal（原始日志）→ 事�
 | 步骤 | 内容 | 引用来源 |
 |------|------|---------|
 | 0.1 理论对齐 | 将 lab 的 schema 定义与图式理论（同化/顺应、生命周期）对照，记录差异与设计决策 | `library/theories/schema-theory.md` |
-| 0.2 质量维度 | 从理论推导 schema 质量评估标准（如 coherence、specificity、bias coverage） | `library/theories/schema-theory.md` |
+| 0.2 质量维度 | 合并双来源：理论可推导 3 维（覆盖度/灵活性/复杂度），工程引入 4 维（内部一致性/外部有效性/任务适用性/可沟通性） | `library/theories/schema-theory.md` + 工程经验 |
 | 0.3 数据接入 | 建立从 `../../data/journal/` 读取 → lab 内部表示（situations、intentions、thoughts）的管道 | 参照 `docs/gallery/AGENTS.md` 的心智模型抽取流程 |
 | 0.4 基线评估 | 用 0.2 的质量维度评估从 journal 提取的首批 schema | journal 原始数据 |
 
