@@ -1,8 +1,6 @@
-//! 文档质量检测器 — 文本 & 代码质量评估
-//! 文本指标：标题层级、过渡词、文本相似度、表格合理性、概念密度、逻辑跳跃
-//! 代码指标：函数长度、API 文档覆盖率、结构复杂度、文件长度、模块耦合
+//! 文档质量检测器 — 文本质量评估
+//! 指标：标题层级、过渡词、文本相似度、表格合理性、概念密度、逻辑跳跃
 
-pub mod code;
 pub mod llm;
 pub mod report;
 pub mod text;
@@ -16,7 +14,6 @@ use clap::{Args, Subcommand};
 pub enum DocType {
     Text,
     Code,
-    Mixed,
 }
 
 /// 单条规则结果
@@ -29,25 +26,18 @@ pub struct RuleResult {
 }
 
 /// 规则 trait — 文本指标
-/// 规则 trait — 文本指标
 pub trait TextRule: Send + Sync {
     fn check(&self, doc: &text::Document) -> RuleResult;
-}
-
-/// 规则 trait — 代码指标
-pub trait CodeRule: Send + Sync {
-    fn check(&self, source: &str) -> RuleResult;
 }
 
 /// 注册的规则集
 pub struct RuleSet {
     text_rules: Vec<Box<dyn TextRule>>,
-    code_rules: Vec<Box<dyn CodeRule>>,
 }
 
 impl RuleSet {
     pub fn new() -> Self {
-        Self { text_rules: Vec::new(), code_rules: Vec::new() }
+        Self { text_rules: Vec::new() }
     }
 
     pub fn add_text(&mut self, rule: Box<dyn TextRule>) -> &mut Self {
@@ -55,37 +45,20 @@ impl RuleSet {
         self
     }
 
-    pub fn add_code(&mut self, rule: Box<dyn CodeRule>) -> &mut Self {
-        self.code_rules.push(rule);
-        self
-    }
-
     pub fn run_text(&self, doc: &text::Document) -> Vec<RuleResult> {
         self.text_rules.iter().map(|r| r.check(doc)).collect()
     }
-
-    pub fn run_code(&self, source: &str) -> Vec<RuleResult> {
-        self.code_rules.iter().map(|r| r.check(source)).collect()
-    }
 }
 
-/// 构建默认规则集
+/// 构建默认规则集（仅文本）
 pub fn default_rules() -> RuleSet {
     let mut rs = RuleSet::new();
-    // 文本
     rs.add_text(Box::new(text::TitleDepth));
     rs.add_text(Box::new(text::TransitionWords));
     rs.add_text(Box::new(text::TextSimilarity));
     rs.add_text(Box::new(text::TableCheck));
     rs.add_text(Box::new(text::ConceptDensity));
     rs.add_text(Box::new(llm::LogicJump));
-    // 代码
-    rs.add_code(Box::new(code::FunctionLength));
-    rs.add_code(Box::new(code::ApiDocCoverage));
-    rs.add_code(Box::new(code::StructuralComplexity));
-    rs.add_code(Box::new(code::FileLength));
-    rs.add_code(Box::new(code::ModDocPresence));
-    rs.add_code(Box::new(code::ModuleCoupling));
     rs
 }
 
@@ -160,24 +133,20 @@ fn cmd_check(args: &CheckArgs) {
     let text = read_input(&args.input);
     let dtype = if args.input == "-" { detect_type_from_content(&text) } else { detect_type(&args.input) };
     let rules = &mut default_rules();
-    let mut results = Vec::new();
     match dtype {
-        DocType::Code => results.extend(rules.run_code(&text)),
+        DocType::Code => {
+            eprintln!("⚠ 代码审计已迁移至 qtcloud-devops code audit");
+            std::process::exit(1);
+        }
         DocType::Text => {
             let doc = text::parse(&text);
-            results.extend(rules.run_text(&doc));
-            // logic_jump 仅在基础指标接近阈值时触发
+            let mut results = rules.run_text(&doc);
             let avg = results.iter().map(|r| r.score / r.max_score).sum::<f64>()
                 / results.len().max(1) as f64;
             if avg <= 0.3 || avg >= 0.8 {
                 results.retain(|r| r.name != "逻辑跳跃");
             }
-        }
-        DocType::Mixed => {
-            let doc = text::parse(&text);
-            results.extend(rules.run_text(&doc));
-            results.extend(rules.run_code(&text));
+            report::print(&results, args.mode);
         }
     }
-    report::print(&results, args.mode);
 }
