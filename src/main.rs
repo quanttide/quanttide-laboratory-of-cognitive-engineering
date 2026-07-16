@@ -1,10 +1,11 @@
 mod data;
-mod transfer;
+mod detect;
 mod report;
+mod transfer;
 
-use std::path::PathBuf;
-use qtcloud_think_cli::repo::Repo;
 use crate::data::{load_annotations, SchemaFile};
+use qtcloud_think_cli::repo::Repo;
+use std::path::PathBuf;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -28,6 +29,12 @@ fn main() {
     match args[1].as_str() {
         "fill" => cmd_fill(&args, &journal_path),
         "assess" => cmd_assess(&args),
+        "check" => {
+            let cogni_args = std::iter::once("detect".to_string())
+                .chain(args[2..].iter().cloned())
+                .collect::<Vec<_>>();
+            detect::dispatch(clap::Parser::parse_from(cogni_args));
+        }
         _ => eprintln!("Unknown command: {}", args[1]),
     }
 }
@@ -40,22 +47,35 @@ fn cmd_fill(args: &[String], journal_path: &PathBuf) {
     let mut i = 3;
     while i < args.len() {
         if args[i] == "--weeks" && i + 1 < args.len() {
-            weeks_filter = Some(args[i+1].split(',').map(|w| format!("2026-{}", w)).collect());
+            weeks_filter = Some(
+                args[i + 1]
+                    .split(',')
+                    .map(|w| format!("2026-{}", w))
+                    .collect(),
+            );
             i += 2;
         } else if args[i] == "--annotations" && i + 1 < args.len() {
-            annotations_path = Some(PathBuf::from(&args[i+1]));
+            annotations_path = Some(PathBuf::from(&args[i + 1]));
             i += 2;
-        } else { i += 1; }
+        } else {
+            i += 1;
+        }
     }
 
     let repo = Repo::open(journal_path);
     let world = "quanttide-founder";
-    let annotations = annotations_path.as_ref().and_then(|p| load_annotations(p).ok());
+    let annotations = annotations_path
+        .as_ref()
+        .and_then(|p| load_annotations(p).ok());
 
     // Collect weeks
     let all_weeks = repo.periods(world).unwrap_or_default();
     let selected_weeks: Vec<&str> = if let Some(ref wf) = weeks_filter {
-        all_weeks.iter().filter(|w| wf.contains(w)).map(|s| s.as_str()).collect()
+        all_weeks
+            .iter()
+            .filter(|w| wf.contains(w))
+            .map(|s| s.as_str())
+            .collect()
     } else {
         all_weeks.iter().map(|s| s.as_str()).collect()
     };
@@ -74,8 +94,10 @@ fn cmd_fill(args: &[String], journal_path: &PathBuf) {
 
     let refs: Vec<&qtcloud_think_cli::repo::DomainFile> = weeks_data.iter().collect();
     let schema = transfer::fill_schema(&refs, annotations.as_ref());
-    let output = serde_yaml::to_string(&SchemaFile { schemas: vec![schema] })
-        .expect("serialization failed");
+    let output = serde_yaml::to_string(&SchemaFile {
+        schemas: vec![schema],
+    })
+    .expect("serialization failed");
     println!("{}", output);
 }
 
