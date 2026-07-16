@@ -7,10 +7,10 @@ use crate::detect::{Mode, RuleResult};
 /// 原始评分是各规则的简单平均，但"未检测到问题"的规则默认给 100 分，
 /// 导致整体虚高。校准曲线将 [0,100] 映射到用户感知区间：
 ///
-///   raw 100% → 80（真正优秀很罕见）
-///   raw 70%  → 50（中等基线）
-///   raw 40%  → 27（较差）
-///   raw 0%   → 5 （几乎无用）
+///   raw 100% → 80（认知清晰度极高）
+///   raw 70%  → 57（良好）
+///   raw 40%  → 35（中等偏下）
+///   raw 0%   → 5 （几乎不可读）
 fn calibrate(raw: f64) -> f64 {
     5.0 + raw * 0.75
 }
@@ -21,8 +21,7 @@ pub fn print(results: &[RuleResult], mode: Mode) {
     let max: f64 = results.iter().map(|r| r.max_score).sum();
     let raw = total / max * 100.0;
     let pct = calibrate(raw);
-    // 校准后的等级阈值
-    let level = if pct >= 65.0 { "低" } else if pct >= 45.0 { "中" } else { "高" };
+    let level = if pct >= 65.0 { "优" } else if pct >= 55.0 { "良" } else if pct >= 45.0 { "中" } else { "差" };
     match mode {
         Mode::Summary => println!("{}% ({})", pct as u32, level),
         Mode::Normal => {
