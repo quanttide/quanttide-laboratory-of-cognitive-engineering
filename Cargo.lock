@@ -479,8 +479,8 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "qtcloud-think-cli",
- "quanttide-agent",
- "quanttide-think",
+ "quanttide-agent 0.1.0",
+ "quanttide-think 0.1.0",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -595,8 +595,8 @@ version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "chrono",
- "quanttide-agent",
- "quanttide-think",
+ "quanttide-agent 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quanttide-think 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_yaml",
 ]
@@ -611,8 +611,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "quanttide-agent"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f15ddd5161fe3d0f7cea0d0cd739292050542c5549de312d90389b56422ef5b6"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ureq",
+]
+
+[[package]]
 name = "quanttide-think"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "quanttide-think"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dbb19fcadfb7fdd5c26f5d94bef27814a4cec31663dcf72881f1a88f194af18"
 dependencies = [
  "chrono",
  "serde",
