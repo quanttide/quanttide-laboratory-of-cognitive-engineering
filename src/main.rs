@@ -9,9 +9,8 @@ fn main() {
 
     match args[1].as_str() {
         "check" => {
-            let detect_args = std::iter::once("detect".to_string())
-                .chain(args[2..].iter().cloned())
-                .collect::<Vec<_>>();
+            let mut detect_args = vec!["detect".to_string(), "check".to_string()];
+            detect_args.extend(args[2..].iter().cloned());
             detect::dispatch(clap::Parser::parse_from(detect_args));
         }
         _ => eprintln!("Unknown command: {}", args[1]),
