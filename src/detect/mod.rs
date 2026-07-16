@@ -56,7 +56,6 @@ pub fn default_rules() -> RuleSet {
     rs.add_text(Box::new(text::TitleDepth));
     rs.add_text(Box::new(text::TransitionWords));
     rs.add_text(Box::new(text::TextSimilarity));
-    rs.add_text(Box::new(text::TableCheck));
     rs.add_text(Box::new(text::ConceptDensity));
     rs.add_text(Box::new(llm::LogicJump));
     rs

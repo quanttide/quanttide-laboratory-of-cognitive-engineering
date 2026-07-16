@@ -1,5 +1,5 @@
 //! 文本（Markdown 散文）检测指标
-//! 结构：Document → Paragraph / Table → 各规则消费
+//! 结构：Document → Paragraph → 各规则消费
 
 use crate::detect::{RuleResult, TextRule};
 use std::collections::HashSet;
@@ -9,7 +9,6 @@ use std::collections::HashSet;
 #[derive(Debug)]
 pub struct Document {
     pub paragraphs: Vec<Paragraph>,
-    pub tables: Vec<Table>,
 }
 
 #[derive(Debug)]
@@ -20,17 +19,10 @@ pub struct Paragraph {
     pub heading_level: usize,
 }
 
-#[derive(Debug)]
-pub struct Table {
-    pub line_start: usize,
-    pub rows: Vec<Vec<String>>,
-}
-
 /// 从 Markdown 文本解析文档
 pub fn parse(text: &str) -> Document {
     let lines: Vec<&str> = text.lines().collect();
     let mut paragraphs = Vec::new();
-    let mut tables = Vec::new();
     let mut i = 0;
     while i < lines.len() {
         let line = lines[i];
@@ -41,25 +33,12 @@ pub fn parse(text: &str) -> Document {
                 is_heading: true,
                 heading_level: level,
             });
-        } else if line.trim_start().starts_with('|') && line.trim_end().ends_with('|') {
-            let mut rows = Vec::new();
-            while i < lines.len() && lines[i].trim_start().starts_with('|') {
-                let cells: Vec<String> = lines[i]
-                    .split('|')
-                    .filter(|c| !c.is_empty())
-                    .map(|c| c.trim().to_string())
-                    .collect();
-                rows.push(cells);
-                i += 1;
-            }
-            tables.push(Table { line_start: i - rows.len(), rows });
-            continue;
         } else if !line.trim().is_empty() {
             paragraphs.push(Paragraph { line_start: i, text: line.to_string(), is_heading: false, heading_level: 0 });
         }
         i += 1;
     }
-    Document { paragraphs, tables }
+    Document { paragraphs }
 }
 
 fn heading_level(line: &str) -> Option<usize> {
@@ -133,26 +112,6 @@ fn text_similarity_pair(a: &str, b: &str) -> f64 {
     let inter = wa.intersection(&wb).count();
     let union = wa.len() + wb.len() - inter;
     if union == 0 { 0.0 } else { inter as f64 / union as f64 }
-}
-
-pub struct TableCheck;
-impl TextRule for TableCheck {
-    fn check(&self, doc: &Document) -> RuleResult {
-        let mut invalid = 0;
-        let mut details = Vec::new();
-        for t in &doc.tables {
-            if t.rows.len() < 3 {
-                let has_summary = doc.paragraphs.iter().any(|p| !p.is_heading && p.line_start > t.line_start + t.rows.len() && p.text.contains("总结"));
-                if !has_summary {
-                    invalid += 1;
-                    details.push(format!("第 {} 行的表格行数 < 3 且无总结", t.line_start + 1));
-                }
-            }
-        }
-        let score = if doc.tables.is_empty() { 100.0 } else { f64::max(0.0, 100.0 - (invalid as f64 / doc.tables.len() as f64) * 100.0) };
-        if details.is_empty() { details.push(if doc.tables.is_empty() { "未检测到表格".to_string() } else { "所有表格合理".to_string() }); }
-        RuleResult { name: "表格合理性", score, max_score: 100.0, details }
-    }
 }
 
 pub struct ConceptDensity;
