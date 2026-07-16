@@ -81,11 +81,16 @@ const TRANSITION_WORDS: &[&str] = &[
 pub struct TitleDepth;
 impl TextRule for TitleDepth {
     fn check(&self, doc: &Document) -> RuleResult {
-        let max_level = doc.paragraphs.iter().filter(|p| p.is_heading).map(|p| p.heading_level).max().unwrap_or(0);
-        let (details, score) = if max_level > 3 {
-            (vec![format!("标题层级最深为 {} 层（建议不超过 3 层）", max_level)],
-             f64::max(0.0, 100.0 - (max_level as f64 - 3.0) * 20.0))
-        } else { (vec![], 100.0) };
+        let headings: Vec<_> = doc.paragraphs.iter().filter(|p| p.is_heading).collect();
+        let (details, score) = if headings.is_empty() {
+            (vec!["文档缺少标题结构".to_string()], 40.0)
+        } else {
+            let max_level = headings.iter().map(|p| p.heading_level).max().unwrap();
+            if max_level > 3 {
+                (vec![format!("标题层级最深为 {} 层（建议不超过 3 层）", max_level)],
+                 f64::max(0.0, 100.0 - (max_level as f64 - 3.0) * 20.0))
+            } else { (vec![], 100.0) }
+        };
         RuleResult { name: "标题层级", score, max_score: 100.0, details: if details.is_empty() { vec!["标题层级合理".to_string()] } else { details } }
     }
 }
@@ -96,7 +101,7 @@ impl TextRule for TransitionWords {
         let body: Vec<&Paragraph> = doc.paragraphs.iter().filter(|p| !p.is_heading).collect();
         let count = body.iter().filter(|p| TRANSITION_WORDS.iter().any(|w| p.text.contains(w))).count();
         let ratio = if body.is_empty() { 1.0 } else { count as f64 / body.len() as f64 };
-        let score = f64::min(100.0, ratio * 200.0);
+        let score = f64::min(100.0, ratio * 100.0);
         let mut details = Vec::new();
         if count == 0 { details.push("未检测到过渡词".to_string()); }
         RuleResult { name: "过渡词使用", score, max_score: 100.0, details }
@@ -109,11 +114,12 @@ impl TextRule for TextSimilarity {
         let texts: Vec<&str> = doc.paragraphs.iter().filter(|p| !p.is_heading).map(|p| p.text.as_str()).collect();
         let mut details = Vec::new();
         for i in 1..texts.len() {
-            if text_similarity_pair(texts[i - 1], texts[i]) > 0.6 {
-                details.push(format!("第 {} 行与第 {} 行内容相似度 > 60%，可能重复", doc.paragraphs[i - 1].line_start + 1, doc.paragraphs[i].line_start + 1));
+            let sim = text_similarity_pair(texts[i - 1], texts[i]);
+            if sim > 0.4 {
+                details.push(format!("第 {} 行与第 {} 行内容相似度 {:.0}%，可能重复", doc.paragraphs[i - 1].line_start + 1, doc.paragraphs[i].line_start + 1, sim * 100.0));
             }
         }
-        let score = if details.is_empty() { 100.0 } else { f64::max(0.0, 100.0 - details.len() as f64 * 25.0) };
+        let score = if details.is_empty() { 100.0 } else { f64::max(0.0, 100.0 - details.len() as f64 * 30.0) };
         if details.is_empty() { details.push("相邻段落无显著重复".to_string()); }
         RuleResult { name: "文本相似度", score, max_score: 100.0, details }
     }
