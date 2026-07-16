@@ -1,3 +1,7 @@
+//! 文档质量检测器 — 支持文本（Markdown 散文）和代码（Rust/通用）的质量评估。
+//! 文本指标：标题层级、过渡词、文本相似度、表格合理性、概念密度、逻辑跳跃。
+//! 代码指标：函数长度、注释密度、结构复杂度。
+
 use clap::{Args, Subcommand};
 use std::collections::HashSet;
 
@@ -77,18 +81,25 @@ pub enum Commands {
     Check(CheckArgs),
 }
 
+/// 分发检测命令
 pub fn dispatch(cli: DetectCli) {
     match cli.command {
         Commands::Check(args) => cmd_check(&args),
     }
 }
 
-fn cmd_check(args: &CheckArgs) {
-    let text = if args.input == "-" {
+/// 读取输入（文件或 stdin）
+fn read_input(path: &str) -> String {
+    if path == "-" {
         std::io::read_to_string(std::io::stdin()).unwrap_or_default()
     } else {
-        std::fs::read_to_string(&args.input).unwrap_or_default()
-    };
+        std::fs::read_to_string(path).unwrap_or_default()
+    }
+}
+
+/// 根据输入类型路由到不同的检测规则集
+fn cmd_check(args: &CheckArgs) {
+    let text = read_input(&args.input);
     let dtype = if args.input == "-" {
         detect_type_from_content(&text)
     } else {
@@ -210,98 +221,73 @@ fn run_rules(doc: &Document) -> Vec<RuleResult> {
     results
 }
 
-fn logic_jump(doc: &Document) -> RuleResult {
-    let api_key = std::env::var("LLM_API_KEY").unwrap_or_default();
-    if api_key.is_empty() {
-        return RuleResult {
-            name: "逻辑跳跃",
-            score: 100.0,
-            max_score: 100.0,
-            details: vec!["未配置 LLM，跳过".to_string()],
-        };
-    }
-    let mut details = Vec::new();
-    let texts: Vec<(usize, &str)> = doc
-        .paragraphs
-        .iter()
-        .filter(|p| !p.is_heading)
-        .map(|p| (p.line_start, p.text.as_str()))
-        .collect();
-    if texts.len() < 2 {
-        return RuleResult {
-            name: "逻辑跳跃",
-            score: 100.0,
-            max_score: 100.0,
-            details: vec!["段落不足".to_string()],
-        };
-    }
-    let body = serde_json::json!({
+/// 构建 LLM 请求载荷
+fn build_jump_payload(texts: &[(usize, &str)]) -> serde_json::Value {
+    serde_json::json!({
         "model": std::env::var("LLM_MODEL").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| "deepseek-v4-flash".to_string()),
         "messages": [
             {"role": "system", "content": "你是一个文档逻辑检测助手。找出文档中相邻段落之间的逻辑跳跃（突然转换话题、缺少过渡、因果关系断裂）。输出JSON数组，每个元素：{\"index\":段落序号,\"jump\":true/false,\"reason\":\"\"}"},
             {"role": "user", "content": texts.iter().enumerate().map(|(i, (_, t))| format!("{}: {}", i, t)).collect::<Vec<_>>().join("\n\n")}
         ],
         "max_tokens": 300
-    });
+    })
+}
+
+/// 调用 LLM API
+fn call_llm(body: &serde_json::Value) -> Result<ureq::Response, ureq::Error> {
+    let api_key = std::env::var("LLM_API_KEY").unwrap_or_default();
+    let base_url = std::env::var("LLM_BASE_URL").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| "https://api.deepseek.com".to_string());
     let client = ureq::AgentBuilder::new()
         .timeout_connect(std::time::Duration::from_secs(5))
         .timeout_read(std::time::Duration::from_secs(10))
         .build();
-    let base_url = std::env::var("LLM_BASE_URL")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "https://api.deepseek.com".to_string());
-    let resp = client
-        .post(&format!("{}/chat/completions", base_url))
+    client.post(&format!("{}/chat/completions", base_url))
         .set("Authorization", &format!("Bearer {}", api_key))
         .set("Content-Type", "application/json")
-        .send_json(&body);
-    let jumps = match resp {
-        Ok(r) => {
-            let data: serde_json::Value = r.into_json().unwrap_or_default();
-            let content = data["choices"][0]["message"]["content"]
-                .as_str()
-                .unwrap_or("[]");
-            let items: Vec<serde_json::Value> = serde_json::from_str(content).unwrap_or_default();
-            for item in &items {
-                if item["jump"].as_bool().unwrap_or(false) {
-                    if let Some(idx) = item["index"].as_u64() {
-                        let idx = idx as usize;
-                        if idx > 0 && idx < texts.len() {
-                            details.push(format!(
-                                "第 {} 行与第 {} 行之间：{}",
-                                texts[idx - 1].0 + 1,
-                                texts[idx].0 + 1,
-                                item["reason"].as_str().unwrap_or("逻辑跳跃")
-                            ));
-                        }
-                    }
+        .send_json(body)
+}
+
+/// 解析 LLM 响应，提取逻辑跳跃
+fn parse_jump_response(resp: ureq::Response, texts: &[(usize, &str)], details: &mut Vec<String>) -> usize {
+    let data: serde_json::Value = resp.into_json().unwrap_or_default();
+    let content = data["choices"][0]["message"]["content"].as_str().unwrap_or("[]");
+    let items: Vec<serde_json::Value> = serde_json::from_str(content).unwrap_or_default();
+    for item in &items {
+        if item["jump"].as_bool().unwrap_or(false) {
+            if let Some(idx) = item["index"].as_u64() {
+                let idx = idx as usize;
+                if idx > 0 && idx < texts.len() {
+                    details.push(format!(
+                        "第 {} 行与第 {} 行之间：{}",
+                        texts[idx - 1].0 + 1,
+                        texts[idx].0 + 1,
+                        item["reason"].as_str().unwrap_or("逻辑跳跃")
+                    ));
                 }
             }
-            items
-                .iter()
-                .filter(|i| i["jump"].as_bool().unwrap_or(false))
-                .count()
         }
-        Err(e) => {
-            details.push(format!("LLM 调用失败: {}", e));
-            0
-        }
-    };
-    let score = if details.is_empty() {
-        100.0
-    } else {
-        f64::max(0.0, 100.0 - jumps as f64 * 30.0)
-    };
-    if details.is_empty() {
-        details.push("未检测到逻辑跳跃".to_string());
     }
-    RuleResult {
-        name: "逻辑跳跃",
-        score,
-        max_score: 100.0,
-        details,
+    items.iter().filter(|i| i["jump"].as_bool().unwrap_or(false)).count()
+}
+
+fn logic_jump(doc: &Document) -> RuleResult {
+    let api_key = std::env::var("LLM_API_KEY").unwrap_or_default();
+    if api_key.is_empty() {
+        return RuleResult { name: "逻辑跳跃", score: 100.0, max_score: 100.0, details: vec!["未配置 LLM，跳过".to_string()] };
     }
+    let texts: Vec<(usize, &str)> = doc.paragraphs.iter().filter(|p| !p.is_heading).map(|p| (p.line_start, p.text.as_str())).collect();
+    if texts.len() < 2 {
+        return RuleResult { name: "逻辑跳跃", score: 100.0, max_score: 100.0, details: vec!["段落不足".to_string()] };
+    }
+    let mut details = Vec::new();
+    let body = build_jump_payload(&texts);
+    let jumps = match call_llm(&body) {
+        Ok(resp) => parse_jump_response(resp, &texts, &mut details),
+        Err(e) => { details.push(format!("LLM 调用失败: {}", e)); 0 }
+    };
+    let score = if details.is_empty() { 100.0 } else { f64::max(0.0, 100.0 - jumps as f64 * 30.0) };
+    if details.is_empty() { details.push("未检测到逻辑跳跃".to_string()); }
+    RuleResult { name: "逻辑跳跃", score, max_score: 100.0, details }
 }
 
 fn title_depth(doc: &Document) -> RuleResult {
@@ -511,317 +497,178 @@ fn run_code_rules(text: &str) -> Vec<RuleResult> {
     ]
 }
 
-/// 指标一：函数长度 — 统计每个函数体的行数
-fn check_function_length(text: &str) -> RuleResult {
-    let lines: Vec<&str> = text.lines().collect();
-    let mut fn_starts: Vec<usize> = lines
-        .iter()
-        .enumerate()
-        .filter(|(_, l)| {
-            let t = l.trim();
-            (t.starts_with("fn ") || t.starts_with("pub fn ") || t.starts_with("pub(crate) fn "))
-                && !t.starts_with("//")
-                && !t.starts_with("///")
-        })
-        .map(|(i, _)| i)
-        .collect();
-
-    if fn_starts.is_empty() {
-        // 尝试其他语言的关键字
-        fn_starts = lines
-            .iter()
-            .enumerate()
-            .filter(|(_, l)| {
-                let t = l.trim();
-                (t.starts_with("def ")
-                    || t.starts_with("function ")
-                    || t.starts_with("func ")
-                    || t.starts_with("pub fn "))
-                    && !t.starts_with("//")
-                    && !t.starts_with("#")
-                    && !t.starts_with("--")
-            })
-            .map(|(i, _)| i)
-            .collect();
-    }
-
-    if fn_starts.is_empty() {
-        return RuleResult {
-            name: "函数长度",
-            score: 100.0,
-            max_score: 100.0,
-            details: vec!["未检测到函数定义".to_string()],
-        };
-    }
-
-    let mut details = Vec::new();
-    let mut worst_ratio = 1.0;
-
-    for (idx, &start) in fn_starts.iter().enumerate() {
-        let end = if idx + 1 < fn_starts.len() {
-            fn_starts[idx + 1]
-        } else {
-            lines.len()
-        };
-        let func_lines = end - start;
-        let func_name = lines[start]
-            .trim()
-            .split_whitespace()
-            .nth(1)
-            .unwrap_or("?");
-
-        let ratio = if func_lines > 80 {
-            0.0
-        } else if func_lines > 40 {
-            1.0 - (func_lines - 40) as f64 / 40.0
-        } else {
-            1.0
-        };
-
-        if ratio < worst_ratio {
-            worst_ratio = ratio;
-        }
-
-        if func_lines > 40 {
-            let level = if func_lines > 80 {
-                "大幅"
-            } else {
-                ""
-            };
-            details.push(format!(
-                "函数 `{}` 共 {} 行（{}超过建议上限 40 行）",
-                func_name, func_lines, level
-            ));
-        }
-    }
-
-    let score = worst_ratio * 100.0;
-    if details.is_empty() {
-        details.push("所有函数长度合理".to_string());
-    }
-    RuleResult {
-        name: "函数长度",
-        score,
-        max_score: 100.0,
-        details,
-    }
+/// 查找函数定义行号（先试 Rust fn，再试其他语言）
+fn find_fn_positions(lines: &[&str]) -> Vec<usize> {
+    let rust: Vec<_> = lines.iter().enumerate()
+        .filter(|(_, l)| { let t = l.trim(); (t.starts_with("fn ") || t.starts_with("pub fn ") || t.starts_with("pub(crate) fn ")) && !t.starts_with("//") && !t.starts_with("///") })
+        .map(|(i, _)| i).collect();
+    if !rust.is_empty() { return rust; }
+    lines.iter().enumerate()
+        .filter(|(_, l)| { let t = l.trim(); (t.starts_with("def ") || t.starts_with("function ") || t.starts_with("func ")) && !t.starts_with("//") && !t.starts_with("#") && !t.starts_with("--") })
+        .map(|(i, _)| i).collect()
 }
 
-/// 指标二：注释密度 — 注释行占比 + 公开 API 文档注释检查
+/// 评分每个函数体长度：< 40 → 1.0, 40–80 → 线性下降, > 80 → 0.0
+fn score_fn_body_lengths(starts: &[usize], lines: &[&str]) -> (Vec<String>, f64) {
+    let mut details = Vec::new();
+    let mut worst = 1.0;
+    for (idx, &start) in starts.iter().enumerate() {
+        let end = if idx + 1 < starts.len() { starts[idx + 1] } else { lines.len() };
+        let n = end - start;
+        let name = lines[start].trim().split_whitespace().nth(1).unwrap_or("?");
+        let r = if n > 80 { 0.0 } else if n > 40 { 1.0 - (n - 40) as f64 / 40.0 } else { 1.0 };
+        if r < worst { worst = r; }
+        if n > 40 {
+            details.push(format!("函数 `{}` 共 {} 行（{}超过建议上限 40 行）", name, n, if n > 80 { "大幅" } else { "" }));
+        }
+    }
+    (details, worst)
+}
+
+/// 指标一：函数长度
+fn check_function_length(text: &str) -> RuleResult {
+    let lines: Vec<&str> = text.lines().collect();
+    let fn_starts = find_fn_positions(&lines);
+    if fn_starts.is_empty() {
+        return RuleResult { name: "函数长度", score: 100.0, max_score: 100.0, details: vec!["未检测到函数定义".to_string()] };
+    }
+    let (mut details, worst) = score_fn_body_lengths(&fn_starts, &lines);
+    let score = worst * 100.0;
+    if details.is_empty() { details.push("所有函数长度合理".to_string()); }
+    RuleResult { name: "函数长度", score, max_score: 100.0, details }
+}
+
+/// 查找缺少文档注释的公开函数
+fn find_undocumented_pub_fns(lines: &[&str]) -> Vec<String> {
+    let mut missing = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        let t = line.trim();
+        if t.starts_with("pub fn ") || t.starts_with("pub(crate) fn ") {
+            let has_doc = (1..=3).any(|off| i >= off && lines[i - off].trim().starts_with("///"));
+            if !has_doc { missing.push(t.split_whitespace().nth(2).unwrap_or("?").to_string()); }
+        }
+    }
+    missing
+}
+
+/// 指标二：注释密度
 fn check_comment_density(text: &str) -> RuleResult {
     let lines: Vec<&str> = text.lines().collect();
     let total = lines.len();
     if total == 0 {
-        return RuleResult {
-            name: "注释密度",
-            score: 100.0,
-            max_score: 100.0,
-            details: vec!["空文件".to_string()],
-        };
+        return RuleResult { name: "注释密度", score: 100.0, max_score: 100.0, details: vec!["空文件".to_string()] };
     }
-
-    // 统计注释行
-    let comment_lines = lines
-        .iter()
-        .filter(|l| {
-            let t = l.trim();
-            t.starts_with("//") || t.starts_with("///") || t.starts_with("/*") || t.starts_with("* ")
-                || t.starts_with("#") || t.starts_with("--")
-        })
-        .count();
-
+    let comment_lines = lines.iter().filter(|l| {
+        let t = l.trim();
+        t.starts_with("//") || t.starts_with("///") || t.starts_with("/*") || t.starts_with("* ") || t.starts_with("#") || t.starts_with("--")
+    }).count();
     let ratio = comment_lines as f64 / total as f64;
+    let missing_doc = find_undocumented_pub_fns(&lines);
     let mut details = Vec::new();
-
-    // 检查公开函数是否有文档注释
-    let mut missing_doc = Vec::new();
-    for (i, line) in lines.iter().enumerate() {
-        let t = line.trim();
-        if t.starts_with("pub fn ") || t.starts_with("pub(crate) fn ") {
-            // 向前看是否有 `///` 注释块
-            let has_doc = (1..=3).any(|offset| {
-                if i >= offset {
-                    let prev = lines[i - offset].trim();
-                    prev.starts_with("///")
-                } else {
-                    false
-                }
-            });
-            if !has_doc {
-                let name = t.split_whitespace().nth(2).unwrap_or("?");
-                missing_doc.push(name.to_string());
-            }
-        }
-    }
-
     let mut score = 100.0;
-
     if ratio < 0.05 {
-        details.push(format!(
-            "注释行占比 {:.1}%（低于建议的 5%）",
-            ratio * 100.0
-        ));
+        details.push(format!("注释行占比 {:.1}%（低于建议的 5%）", ratio * 100.0));
         score -= 30.0;
     }
-
     if !missing_doc.is_empty() {
-        details.push(format!(
-            "{} 个公开函数缺少文档注释：{}",
-            missing_doc.len(),
-            missing_doc.join(", ")
-        ));
+        details.push(format!("{} 个公开函数缺少文档注释：{}", missing_doc.len(), missing_doc.join(", ")));
         score -= missing_doc.len() as f64 * 15.0;
     }
-
     let score = f64::max(0.0, score);
-    if details.is_empty() {
-        details.push("注释密度合理".to_string());
-    }
-    RuleResult {
-        name: "注释密度",
-        score,
-        max_score: 100.0,
-        details,
-    }
+    if details.is_empty() { details.push("注释密度合理".to_string()); }
+    RuleResult { name: "注释密度", score, max_score: 100.0, details }
 }
 
-/// 指标三：结构复杂度 — 嵌套深度 + 圈复杂度 + 命名熵
+/// 检测最大嵌套深度
+fn detect_nesting(lines: &[&str]) -> usize {
+    lines.iter().filter_map(|line| {
+        let t = line.trim();
+        if t.is_empty() || t.starts_with("//") || t.starts_with("///") || t.starts_with("/*") { return None; }
+        let indent = line.len() - line.trim_start().len();
+        Some(if indent > 0 && line.starts_with('\t') { indent } else { indent / 4 })
+    }).max().unwrap_or(0)
+}
+
+/// 判断行是否为函数定义
+fn is_fn_def(t: &str) -> bool {
+    t.starts_with("fn ") || t.starts_with("pub fn ") || t.starts_with("def ") || t.starts_with("function ") || t.starts_with("func ")
+}
+
+/// 统计行中分支关键字出现次数
+fn branch_kw_count(t: &str) -> usize {
+    ["if ", "else if ", "for ", "while ", "match ", "case ", "catch ", "except"]
+        .iter().filter(|kw| t.contains(*kw)).count()
+}
+
+/// 检测圈复杂度超过 10 的函数
+fn detect_high_complexity(lines: &[&str]) -> Vec<(usize, usize)> {
+    let mut results = Vec::new();
+    let mut in_fn = false;
+    let mut start = 0;
+    let mut comp = 0;
+    for (i, line) in lines.iter().enumerate() {
+        let t = line.trim();
+        if is_fn_def(t) {
+            // 上一个函数收尾
+            if in_fn && comp > 10 { results.push((start, comp)); }
+            start = i; comp = 0; in_fn = true;
+        } else if in_fn {
+            comp += branch_kw_count(t);
+        }
+    }
+    // 最后一个函数收尾
+    if in_fn && comp > 10 { results.push((start, comp)); }
+    results
+}
+
+/// 分析命名熵：标识符长度分布
+fn detect_naming(text: &str) -> (f64, usize, usize) {
+    let ids: Vec<&str> = text.split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|w| !w.is_empty() && w.len() >= 2 && w.len() <= 40
+            && (w.starts_with(|c: char| c.is_ascii_lowercase()) || w.starts_with(|c: char| c.is_ascii_uppercase()) || w.starts_with('_')))
+        .collect();
+    if ids.is_empty() { return (0.0, 0, 0); }
+    let avg = ids.iter().map(|w| w.len()).sum::<usize>() as f64 / ids.len() as f64;
+    (avg, ids.iter().map(|w| w.len()).min().unwrap(), ids.iter().map(|w| w.len()).max().unwrap())
+}
+
+/// 指标三：结构复杂度
 fn check_structural_complexity(text: &str) -> RuleResult {
     let lines: Vec<&str> = text.lines().collect();
     let mut details = Vec::new();
     let mut score = 100.0;
-
-    // 1. 嵌套深度检测（按缩进层级）
-    let mut max_indent = 0;
-    for line in &lines {
-        let indent = line.len() - line.trim_start().len();
-        // 跳过纯注释和空行
-        let t = line.trim();
-        if t.is_empty() || t.starts_with("//") || t.starts_with("///") || t.starts_with("/*") {
-            continue;
-        }
-        // 缩进以 4 空格或 1 tab 为一级
-        let level = if indent > 0 && line.starts_with('\t') {
-            indent // tab = 1 级
-        } else {
-            indent / 4
-        };
-        if level > max_indent {
-            max_indent = level;
-        }
-    }
+    let max_indent = detect_nesting(&lines);
     if max_indent > 4 {
-        details.push(format!(
-            "最大嵌套深度 {} 层（建议不超过 4 层）",
-            max_indent
-        ));
+        details.push(format!("最大嵌套深度 {} 层（建议不超过 4 层）", max_indent));
         score -= f64::min(30.0, (max_indent as f64 - 4.0) * 10.0);
     }
-
-    // 2. 圈复杂度（按分支关键字计数）
-    let branch_kws = ["if ", "else if ", "for ", "while ", "match ", "case ", "catch ", "except"];
-    let mut _total_complexity = 0;
-    let mut fn_complexities: Vec<(usize, usize)> = Vec::new();
-    let mut fn_start = 0;
-    let mut fn_complexity = 0;
-    let mut in_fn = false;
-
-    for (i, line) in lines.iter().enumerate() {
-        let t = line.trim();
-        if t.starts_with("fn ")
-            || t.starts_with("pub fn ")
-            || t.starts_with("def ")
-            || t.starts_with("function ")
-            || t.starts_with("func ")
-        {
-            if in_fn && fn_complexity > 10 {
-                fn_complexities.push((fn_start, fn_complexity));
-            }
-            fn_start = i;
-            fn_complexity = 0;
-            in_fn = true;
-        }
-        if in_fn {
-            for kw in &branch_kws {
-                if t.contains(kw) {
-                    fn_complexity += 1;
-                    _total_complexity += 1;
-                }
-            }
-        }
-    }
-    if in_fn && fn_complexity > 10 {
-        fn_complexities.push((fn_start, fn_complexity));
-    }
-
-    for (line_no, comp) in &fn_complexities {
-        let func_name = lines[*line_no].trim().split_whitespace().nth(1).unwrap_or("?");
-        details.push(format!(
-            "函数 `{}`（第 {} 行）圈复杂度 {}（建议不超过 10）",
-            func_name,
-            line_no + 1,
-            comp
-        ));
+    for (line_no, comp) in &detect_high_complexity(&lines) {
+        let name = lines[*line_no].trim().split_whitespace().nth(1).unwrap_or("?");
+        details.push(format!("函数 `{}`（第 {} 行）圈复杂度 {}（建议不超过 10）", name, line_no + 1, comp));
         score -= f64::min(30.0, (*comp as f64 - 10.0) * 5.0);
     }
-
-    // 3. 命名熵检测（标识符长度分布）
-    let identifiers: Vec<&str> = text
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .filter(|w| {
-            !w.is_empty()
-                && (w.starts_with(|c: char| c.is_ascii_lowercase())
-                    || w.starts_with(|c: char| c.is_ascii_uppercase())
-                    || w.starts_with('_'))
-                && w.len() >= 2
-                && w.len() <= 40
-        })
-        .collect();
-
-    if !identifiers.is_empty() {
-        let avg_len = identifiers.iter().map(|w| w.len()).sum::<usize>() as f64 / identifiers.len() as f64;
-        let min_len = identifiers.iter().map(|w| w.len()).min().unwrap_or(0);
-        let max_len = identifiers.iter().map(|w| w.len()).max().unwrap_or(0);
-
-        // 命名熵异常：全短名（avg < 4）或全长名（avg > 20）
+    let (avg_len, min_len, max_len) = detect_naming(text);
+    if avg_len > 0.0 {
         if avg_len < 4.0 {
-            details.push(format!(
-                "命名长度偏短（平均 {:.1} 字符），可能存在含义不明的缩写",
-                avg_len
-            ));
+            details.push(format!("命名长度偏短（平均 {:.1} 字符），可能存在含义不明的缩写", avg_len));
             score -= 15.0;
         } else if avg_len > 20.0 {
-            details.push(format!(
-                "命名长度偏长（平均 {:.1} 字符），可能存在冗余命名",
-                avg_len
-            ));
+            details.push(format!("命名长度偏长（平均 {:.1} 字符），可能存在冗余命名", avg_len));
             score -= 15.0;
         }
-
-        // 命名跨度异常
         if min_len >= 2 && max_len - min_len > 25 {
-            details.push(format!(
-                "命名长度跨度大（最短 {} 字符，最长 {} 字符），风格不一致",
-                min_len, max_len
-            ));
+            details.push(format!("命名长度跨度大（最短 {} 字符，最长 {} 字符），风格不一致", min_len, max_len));
             score -= 10.0;
         }
     }
-
     let score = f64::max(0.0, score);
-    if details.is_empty() {
-        details.push("结构复杂度合理".to_string());
-    }
-    RuleResult {
-        name: "结构复杂度",
-        score,
-        max_score: 100.0,
-        details,
-    }
+    if details.is_empty() { details.push("结构复杂度合理".to_string()); }
+    RuleResult { name: "结构复杂度", score, max_score: 100.0, details }
 }
 
 // ── 报告输出 ──────────────────────────────────────────
 
+/// 输出检测报告
 fn print_report(results: &[RuleResult], mode: Mode) {
     let total: f64 = results.iter().map(|r| r.score).sum();
     let max: f64 = results.iter().map(|r| r.max_score).sum();
